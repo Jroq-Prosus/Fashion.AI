@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# VSCode & IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs & temp files
+*.log
+*.bak
+*.swp
+*.swo
+*.tmp
+
+# Env variables
+.env
+.env.*
+
+# Supabase artifacts
+.supabase/
+.supabase/config.json
+.supabase/functions/
+
+# Node/npm (if you use frontend with supabase)
+node_modules/
+*.lock
+
+# Database dumps
+*.sql
+*.sqlite3
+
+# Large data files
+data/
+*.csv
+*.json
+*.parquet
+*.h5
+
+# Docker
+*.pid
+*.tar
+docker-compose.override.yml
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Tests artifacts
+.coverage
+htmlcov/
+.tox/
+pytest_cache/
+
+# Build
+build/
+dist/
+*.egg-info/
+.eggs/
