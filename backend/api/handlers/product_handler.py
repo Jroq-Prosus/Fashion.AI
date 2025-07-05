@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from controllers import product_controller
+from controllers.products import product_controller
 from schemas.product_schema import ProductMetadata
 from utils.response import standard_response
 
