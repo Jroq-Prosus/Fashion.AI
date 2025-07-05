@@ -1,31 +1,35 @@
+from fastapi import APIRouter
 """ LOADING LIBRARIES """
-from setup import *
-from prompt_template_setup import *
+from llava.constants import IMAGE_TOKEN_INDEX
+from llava.conversation import conv_templates, SeparatorStyle
+from llava.mm_utils import process_images
+from transformers import TextStreamer
+from pydantic import BaseModel
+from typing import List
+from io import BytesIO
+import torch
+from PIL import Image
+from fastapi import Query
+from PIL import Image
+import torch
+import base64
+from setup import Initializer
+from models.image import ImagePayload
+from models.detection import DetectionInput
+from models.retrieval import RetrievalOutput
+from assets.prompt_template_setup import prompt_template
 
-app = FastAPI()
+router = APIRouter(prefix="/ai", tags=["Ai"])
 
-class ImagePayload(BaseModel):
-    image_base64: str
+Initializer = Initializer.get_instance()
 
-class DetectionItem(BaseModel):
-    scores: List[float]
-    labels: List[int]
-    bboxes: List[List[float]]  
-
-class DetectionInput(BaseModel):
-    image_base64: str
-    items: DetectionItem
-
-class RetrievalOutput(BaseModel):
-    retrieved_image_paths: List[str]
-    scores: List[float]
-
-
-@app.get("/")
+@router.get("/")
 def read_root():
     return {"message": "Hello, FastAPI!"}
 
-@app.post("/object-detector")
+# TODO: Move core logics to service layer
+
+@router.post("/object-detector")
 def object_detector(payload: ImagePayload):
     # Decode base64 string to bytes
     image_data = base64.b64decode(payload.image_base64.split(",")[-1])
@@ -33,10 +37,10 @@ def object_detector(payload: ImagePayload):
     image = Image.open(BytesIO(image_data)).convert("RGB")
     # Object Detection
     with torch.no_grad():
-        inputs = yolo_image_processor(images=[image], return_tensors="pt")
-        outputs = yolo_model(**inputs.to(device))
+        inputs = Initializer.yolo_image_processor(images=[image], return_tensors="pt")
+        outputs = Initializer.yolo_model(**inputs.to(Initializer.device))
         target_sizes = torch.tensor([[image.size[1], image.size[0]]])
-        results = yolo_image_processor.post_process_object_detection(outputs, threshold=0.85, target_sizes=target_sizes)[0]
+        results = Initializer.yolo_image_processor.post_process_object_detection(outputs, threshold=0.85, target_sizes=target_sizes)[0]
     
         items = {"scores":[],"labels":[],"bboxes":[]}
         boxes = []
@@ -50,7 +54,7 @@ def object_detector(payload: ImagePayload):
     # Output
     return items
 
-@app.post("/image-retrieval")
+@router.post("/image-retrieval")
 def image_retrieval(payload: DetectionInput, k: int = Query(...)):
     """ Load the image """
     # Decode base64 string to bytes
@@ -70,15 +74,15 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
     image_features = []
     dists, indexes = [], []
     # Perform image feature extraction
-    inputs = feature_extractor(images = cropped_objects, return_tensors="pt")
+    inputs = Initializer.feature_extractor(images = cropped_objects, return_tensors="pt")
     for i in range(inputs['pixel_values'].size(0)):
         feature = inputs['pixel_values'][i].unsqueeze(0)
-        image_features = clip_model.get_image_features(feature.to(device))
+        image_features = Initializer.clip_model.get_image_features(feature.to(Initializer.device))
         # Normalize the features
         image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)  
         image_features = image_features.detach().cpu().numpy()
         # Retrieve the similar image features through cosine similarity
-        D, I = index.search(image_features, k)
+        D, I = Initializer.index.search(image_features, k)
         # Getting the data of distance and index
         dists+= D.tolist()
         indexes += I.tolist()
@@ -88,7 +92,7 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
     scores = []
     for index_,dist_ in zip(indexes,dists):
         for i in range(len(index_)):
-            retrieved_image_paths.append(image_paths[index_[i]])
+            retrieved_image_paths.append(Initializer.image_paths[index_[i]])
             scores.append(round(dist_[i],4))
 
     """ Return Output """
@@ -96,7 +100,7 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
         "retrieved_image_paths":retrieved_image_paths,
         "scores":scores}
 
-@app.post("/response-generation")
+@router.post("/response-generation")
 def response_generation(
     image: ImagePayload, 
     data: RetrievalOutput, 
@@ -115,19 +119,26 @@ def response_generation(
     for path in data.retrieved_image_paths:
         images.append(Image.open(path).convert("RGB"))
     # Connvert to tensor
-    image_tensor = process_images(images, image_processor, model).to("cuda:0", dtype=torch.float16)
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    image_tensor = process_images(images, Initializer.image_processor, Initializer.model).to(device, dtype=torch.float16)
     image_sizes = [img.size for img in images]
     
     """ Construct the extra_info for prompt_template """
     extra_info = ""
     i = 1
     for path in data.retrieved_image_paths:
-        concept = database['path_to_concept'].get(path)
-        name = database['concept_dict'][concept]["name"]
-        info = database['concept_dict'][concept]["info"]
+        concept = Initializer.database['path_to_concept'].get(path)
+        if concept is None:
+            # Handle the error, e.g., return a 400 response or a default value
+            raise ValueError("Concept is None. Cannot look up name.")
+        if concept not in Initializer.database['concept_dict']:
+            # Handle missing concept
+            raise KeyError(f"Concept '{concept}' not found in concept_dict.")
+        name = Initializer.database['concept_dict'][concept]["name"]
+        info = Initializer.database['concept_dict'][concept]["info"]
         extra_info += f"{i}. <image>\n"
-        for key in database['concept_dict']["<anya-forger>"].keys():
-            extra_info+=f"{key}: {database['concept_dict']['<anya-forger>'][key]}, "
+        for key in Initializer.database['concept_dict']["<anya-forger>"].keys():
+            extra_info+=f"{key}: {Initializer.database['concept_dict']['<anya-forger>'][key]}, "
         extra_info += "\n"
         i +=1
         
@@ -137,13 +148,13 @@ def response_generation(
     """ Finalizing Response """
     # Initialize Values
     conv = conv_templates["llava_v0"].copy()
-    input_ids = tokenizer_image_token(prompt_chat, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
+    input_ids = Initializer.tokenizer_image_token(prompt_chat, Initializer.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(Initializer.model.device)
     stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
     keywords = [stop_str]
-    streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+    streamer = TextStreamer(Initializer.tokenizer, skip_prompt=True, skip_special_tokens=True)
     # Model inferencing
     with torch.inference_mode():
-        output_ids = model.generate(
+        output_ids = Initializer.model.generate(
             input_ids,
             images=image_tensor,
             image_sizes=image_sizes,
@@ -153,10 +164,8 @@ def response_generation(
             streamer=streamer,
             use_cache=True)
     # Decode the output
-    response = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+    response = Initializer.tokenizer.decode(output_ids[0], skip_special_tokens=True)
     print(prompt_chat)
 
     """ Generate output """
     return {"response": response}
-        
-    

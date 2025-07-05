@@ -5,13 +5,14 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from postgrest.exceptions import APIError
 from dotenv import load_dotenv
 
-from api.handlers import product_handler
+from api.handlers import product_handler, ai_handler
 from utils.response import standard_response
 
-load_dotenv()  # Load .env file ke environment variables
+load_dotenv('../.env')  # Load .env file ke environment variables
 
 app = FastAPI(title="Product Metadata API")
 app.include_router(product_handler.router)
+app.include_router(ai_handler.router)
 
 # -------------------------------
 # 🌟 Global Exception Handlers
