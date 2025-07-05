@@ -1,0 +1,48 @@
+{
+    "concept_dict": {
+        "<anya-forger>": {
+            "name": "anya-forger",
+            "image": "image_database/Anya Forger.png",
+            "info": "<anya-forger> is a small girl with short pink hair, green eyes, and distinctive horn-like accessories. She wears a black and gold school uniform and has an expressive, curious face.",
+            "category": "anime character"
+        },
+        "<bond-forger>": {
+            "name": "bond-forger",
+            "image": "image_database/Bond Forger.png",
+            "info": "<bond-forger> is a large white dog with fluffy fur and a gentle demeanor. He has precognitive abilities and often helps the Forger family in their missions.",
+            "category": "anime character"
+        },
+        "<loid-forger>": {
+            "name": "loid-forger",
+            "image": "image_database/Loid Forger.png",
+            "info": "<loid-forger> is a tall man with blonde hair and blue eyes. Known as 'Twilight', he is a master spy who assumes the identity of Loid Forger, a loving father and psychiatrist.",
+            "category": "anime character"
+        },
+        "<yor-forger>": {
+            "name": "yor-forger",
+            "image": "image_database/Yor Forger.png",
+            "info": "<yor-forger> is a devoted and protective mother figure to Anya, always striving to keep her safe despite her secret life as an assassin. Though awkward at times, her love for Anya is sincere and unwavering.",
+            "category": "anime character"
+        },
+        "<Clara>": {
+                    "name": "Clara",
+                    "image": "image_database/girlfriend.png",
+                    "info": "<Clara> is my girlfriend. She really loves me.",
+                    "category": "real person"
+        },
+        "<me>": {
+                    "name": "me",
+                    "image": "image_database/me.png",
+                    "info": "<me> is myself. This is me.",
+                    "category": "real person"
+        }
+    },
+    "path_to_concept": {
+        "image_database/Anya Forger.png": "<anya-forger>",
+        "image_database/Bond Forger.png": "<bond-forger>",
+        "image_database/Loid Forger.png": "<loid-forger>",
+        "image_database/Yor Forger.png": "<yor-forger>",
+        "image_database/girlfriend.png": "<Clara>",
+        "image_database/me.png": "<me>"
+    }
+}
