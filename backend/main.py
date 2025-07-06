@@ -11,6 +11,24 @@ from utils.response import standard_response
 load_dotenv('../.env')  # Load .env file ke environment variables
 
 app = FastAPI(title="Product Metadata API")
+
+# -------------------------------
+# Configure CORS
+# -------------------------------
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+)
+
+# -------------------------------
+# Configure API Documentation 
+# -------------------------------
+app = FastAPI(swagger_ui_parameters={"syntaxHighlight": {"theme": "obsidian"}})
+
 app.include_router(product_handler.router)
 app.include_router(ai_handler.router)
 
