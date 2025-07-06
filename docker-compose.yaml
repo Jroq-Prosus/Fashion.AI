@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  fastapi-app:
+    build:
+      context: ./backend       # ⬅️ arahkan ke folder backend
+      dockerfile: Dockerfile   # ⬅️ Dockerfile di backend
+    container_name: fastapi_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app         # ⬅️ bind mount backend ke /app
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
