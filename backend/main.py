@@ -31,7 +31,7 @@ app = FastAPI(swagger_ui_parameters={"syntaxHighlight": {"theme": "obsidian"}})
 
 app.include_router(product_handler.router)
 app.include_router(user_handler.router)
-# app.include_router(ai_handler.router)
+app.include_router(ai_handler.router)
 
 # -------------------------------
 # 🌟 Global Exception Handlers
