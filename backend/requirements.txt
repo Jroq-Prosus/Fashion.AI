@@ -1,16 +1,36 @@
 opencv-python-headless
-faiss-cpu
-fastapi
 llava @ git+https://github.com/haotian-liu/LLaVA.git
 numpy
-pydantic
 python-dotenv
 Pillow
 supabase
-torch
 tqdm
-ultralytics
+torch==2.1.2
+torchvision==0.16.2
+sentencepiece==0.1.99
+shortuuid
+accelerate==0.27.2
+peft==0.11.1
+bitsandbytes
+pydantic
+markdown2[all]
+numpy==1.24.4
+scikit-learn==1.2.2
+gradio==4.16.0
+gradio_client==0.8.1
+requests
+httpx==0.24.0
 uvicorn
-protobuf
+fastapi
+einops==0.6.1
+einops-exts==0.0.4
+timm==0.6.13
+ultralytics==8.2.50
+faiss-gpu==1.7.2
+
+
 clip @ git+https://github.com/openai/CLIP.git@dcba3cb2e2827b402d2701e7e1c7d9fed8a20ef1
-httpx<0.27
+httpx>=0.23.0
+transformers @ git+https://github.com/huggingface/transformers@a98c41798cf6ed99e1ff17e3792d6e06a2ff2ff3
+protobuf 
+bas
