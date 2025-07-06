@@ -12,8 +12,8 @@
 2. **Install Python 3.10:**
    ```sh
    brew install pyenv
-   pyenv install 3.10.13
-   pyenv local 3.10.13
+   pyenv install 3.10.18
+   pyenv local 3.10.18
    ```
 
 3. **Create and activate a virtual environment:**
@@ -24,7 +24,8 @@
 
 4. **Install dependencies:**
    ```sh
-   pip install -r backend/requirements.txt
+   pip install -r requirements.txt
+   pip install --upgrade supabase
    ```
 
 ---
@@ -46,8 +47,8 @@
    export PATH="$HOME/.pyenv/bin:$PATH"
    eval "$(pyenv init --path)"
    eval "$(pyenv virtualenv-init -)"
-   pyenv install 3.10.13
-   pyenv local 3.10.13
+   pyenv install 3.10.18
+   pyenv local 3.10.18
    ```
 
 3. **Create and activate a virtual environment:**
@@ -59,6 +60,7 @@
 4. **Install dependencies:**
    ```sh
    pip install -r requirements.txt
+   pip install --upgrade supabase
    ```
 
 ---
@@ -81,6 +83,7 @@
 4. **Install dependencies:**
    ```sh
    pip install -r requirements.txt
+   pip install --upgrade supabase
    ```
 
 ---
