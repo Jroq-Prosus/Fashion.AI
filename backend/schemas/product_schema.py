@@ -1,16 +1,20 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
-class ReviewSchema(BaseModel):
+class Review(BaseModel):
     user: str
     rating: int
     comment: str
 
 class ProductMetadata(BaseModel):
+    id: str
     title: str
     material_info: str
     description: str
-    reviews: Optional[List[ReviewSchema]] = []
+    reviews: Optional[List[Review]] = []
 
-    class Config:
-        orm_mode = True  # Optional, tapi biarin untuk kompatibilitas
+# Standard response wrapper
+class StandardResponseWithMetadata(BaseModel):
+    code: int
+    message: str
+    data: ProductMetadata

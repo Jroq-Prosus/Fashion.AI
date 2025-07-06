@@ -68,3 +68,7 @@ build/
 dist/
 *.egg-info/
 .eggs/
+
+# Ignore uploads folder
+uploads/
+uploads/*

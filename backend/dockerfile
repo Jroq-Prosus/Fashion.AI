@@ -1,0 +1,40 @@
+# Stage 1: Build dependencies
+FROM python:3.10.14 AS builder
+
+WORKDIR /app
+
+# Upgrade pip & install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc git \
+    && python -m pip install --upgrade pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install them into a temp directory
+COPY requirements.txt .
+RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
+
+# Optional: Copy source code and install in editable mode
+COPY . .
+
+# Stage 2: Final runtime image (smaller)
+FROM python:3.10.14
+
+WORKDIR /app
+
+# Upgrade pip minimally
+RUN python -m pip install --upgrade pip
+
+# Copy installed dependencies from builder stage
+COPY --from=builder /install /usr/local
+
+# Copy application source code
+COPY . .
+
+# Set PATH for installed packages
+ENV PATH=/usr/local/bin:$PATH
+
+# Expose API port
+EXPOSE 8000
+
+# Start FastAPI with Uvicorn + hot reload (dev mode)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
