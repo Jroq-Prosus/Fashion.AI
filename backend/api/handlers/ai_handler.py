@@ -119,8 +119,7 @@ def response_generation(
     for path in data.retrieved_image_paths:
         images.append(Image.open(path).convert("RGB"))
     # Connvert to tensor
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    image_tensor = process_images(images, Initializer.image_processor, Initializer.model).to(device, dtype=torch.float16)
+    image_tensor = process_images(images, Initializer.image_processor, Initializer.model).to(Initializer.device, dtype=torch.float16)
     image_sizes = [img.size for img in images]
     
     """ Construct the extra_info for prompt_template """
