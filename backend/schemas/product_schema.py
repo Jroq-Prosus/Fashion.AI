@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
-# Ini model asli untuk metadata
 class Review(BaseModel):
     user: str
     rating: int
