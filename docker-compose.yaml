@@ -3,13 +3,29 @@ version: "3.9"
 services:
   fastapi-app:
     build:
-      context: ./backend       # ⬅️ arahkan ke folder backend
-      dockerfile: Dockerfile   # ⬅️ Dockerfile di backend
+      context: ./backend
     container_name: fastapi_app
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app         # ⬅️ bind mount backend ke /app
+      - ./backend:/app 
     environment:
-      - PYTHONUNBUFFERED=1
-    restart: unless-stopped
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fashion_db
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fashion_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
