@@ -1,7 +1,16 @@
-clip @ git+https://github.com/openai/CLIP.git@dcba3cb2e2827b402d2701e7e1c7d9fed8a20ef1
-transformers @ git+https://github.com/huggingface/transformers@a98c41798cf6ed99e1ff17e3792d6e06a2ff2ff3
-bas
-protobuf 
-tqdm
-python-dotenv
 opencv-python
+faiss-cpu
+fastapi
+llava @ git+https://github.com/haotian-liu/LLaVA.git
+numpy
+pydantic
+python-dotenv
+Pillow
+supabase
+httpx
+torch
+tqdm
+ultralytics
+uvicorn
+protobuf
+clip @ git+https://github.com/openai/CLIP.git@dcba3cb2e2827b402d2701e7e1c7d9fed8a20ef1
