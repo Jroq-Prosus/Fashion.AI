@@ -22,43 +22,80 @@ router = APIRouter(prefix="/ai", tags=["Ai"])
 Initializer = Initializer.get_instance()
 
 
+# -------------------------------
+# AI Router Endpoints
+# -------------------------------
+
 @router.get("/")
 def read_root():
+    """
+    Purpose: Health check endpoint for the AI router.
+    Input: None
+    Output: JSON message confirming the API is running.
+    Example Response: {"message": "Hello, FastAPI!"}
+    """
     return {"message": "Hello, FastAPI!"}
+
 
 @router.post("/object-detector")
 def object_detector(payload: ImagePayload):
+    """
+    Purpose: Detects objects in a user-uploaded image using a YOLO model.
+    Input: JSON body with a base64-encoded image (ImagePayload: { image_base64: str })
+    Output: JSON with detected object scores, labels, and bounding boxes.
+    Example Response:
+        {
+            "scores": [0.98, 0.87],
+            "labels": ["top", "shoes"],
+            "bboxes": [[x1, y1, x2, y2], ...]
+        }
+    """
     # Decode base64 string to bytes
     image_data = base64.b64decode(payload.image_base64.split(",")[-1])
     # Load the image with PIL
     image = Image.open(BytesIO(image_data)).convert("RGB")
     # Object Detection
     with torch.no_grad():
-        inputs = Initializer.yolo_image_processor(images=[image], return_tensors="pt")
-        outputs = Initializer.yolo_model(**inputs.to(device))
+        inputs = Initializer.yolo_image_processor(
+            images=[image], return_tensors="pt")
+        outputs = Initializer.yolo_model(**inputs.to(Initializer.device))
         target_sizes = torch.tensor([[image.size[1], image.size[0]]])
-        results = Initializer.yolo_image_processor.post_process_object_detection(outputs, threshold=0.85, target_sizes=target_sizes)[0]
-    
-        items = {"scores":[],"labels":[],"bboxes":[]}
+        results = Initializer.yolo_image_processor.post_process_object_detection(
+            outputs, threshold=0.85, target_sizes=target_sizes)[0]
+
+        items = {"scores": [], "labels": [], "bboxes": []}
         boxes = []
         for score, label, box in zip(results["scores"], results["labels"], results["boxes"]):
             score = score.item()
             label = label.item()
             box = [i.item() for i in box]
             items["scores"].append(score)
-            items["labels"].append(yolo_model.config.id2label[label])
+            items["labels"].append(
+                Initializer.yolo_model.config.id2label[label])
             items["bboxes"].append(box)
     # Return Output
     return items
 
+
 @router.post("/image-retrieval")
 def image_retrieval(payload: DetectionInput, k: int = Query(...)):
+    """
+    Purpose: Retrieves similar images from a vector database for each detected object in the input image.
+    Input: JSON body with base64-encoded image and detected items (DetectionInput), query parameter k (number of results per object).
+    Output: JSON with lists of retrieved image paths, detected labels, and similarity scores.
+    Example Response:
+        {
+            "retrieved_image_paths": ["/path/to/img1.jpg", ...],
+            "detected_labels": ["top", ...],
+            "similarity_scores": [0.92, ...]
+        }
+    """
     """ Load the image """
     # Decode base64 string to bytes
     image_data = base64.b64decode(payload.image_base64.split(",")[-1])
     # Load the image with PIL
     image = Image.open(BytesIO(image_data)).convert("RGB")
-    
+
     """ Object Cropping """
     cropped_objects = []
     # Cropping the objects of interest
@@ -72,40 +109,55 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
     dists, indexes = [], []
     # Perform image feature extraction
     detected_labels = []
-    inputs = Initializer.feature_extractor(images = cropped_objects, return_tensors="pt")
+    inputs = Initializer.feature_extractor(
+        images=cropped_objects, return_tensors="pt")
     for i in range(inputs['pixel_values'].size(0)):
         feature = inputs['pixel_values'][i].unsqueeze(0)
-        image_features = Initializer.clip_model.get_image_features(feature.to(device))
+        image_features = Initializer.clip_model.get_image_features(
+            feature.to(Initializer.device))
         # Normalize the features
-        image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)  
+        image_features = image_features / \
+            image_features.norm(p=2, dim=-1, keepdim=True)
         image_features = image_features.detach().cpu().numpy()
         # Retrieve the similar image features through cosine similarity
         D, I = Initializer.index.search(image_features, k)
         # Getting the data of distance and index
-        dists+= D.tolist()
+        dists += D.tolist()
         indexes += I.tolist()
-        detected_labels+=[payload.items.labels[i]]*k 
+        detected_labels += [payload.items.labels[i]]*k
 
     """ Getting Image Paths and Scores """
     retrieved_image_paths = []
     scores = []
-    for index_,dist_ in zip(indexes,dists):
+    for index_, dist_ in zip(indexes, dists):
         for i in range(len(index_)):
             retrieved_image_paths.append(Initializer.image_paths[index_[i]])
-            scores.append(round(dist_[i],4))
+            scores.append(round(dist_[i], 4))
 
     """ Return Output """
     return {
-        "retrieved_image_paths":retrieved_image_paths,
-        "detected_labels":detected_labels,
-        "similarity_scores":scores}
+        "retrieved_image_paths": retrieved_image_paths,
+        "detected_labels": detected_labels,
+        "similarity_scores": scores
+    }
+
 
 @router.post("/response-generation-fasion-advisor")
 def response_generation(
-    image: ImagePayload, 
-    data: RetrievalOutput, 
+    image: ImagePayload,
+    data: RetrievalOutput,
     user_query: str = Query(...)
 ):
+    """
+    Purpose: Generates a natural language response as a fashion advisor, based on the user's image, retrieval results, and query.
+    Input:
+        - image: JSON body with base64-encoded image (ImagePayload)
+        - data: RetrievalOutput (retrieved_image_paths, detected_labels, similarity_scores)
+        - user_query: string (query parameter)
+    Output: JSON with a generated response string from the AI model.
+    Example Response:
+        {"response": "Based on your outfit, I recommend..."}
+    """
     """ Load the image """
     query_image = image.image_base64
 
@@ -117,8 +169,9 @@ def response_generation(
         data.similarity_scores
     ))
     # Step 2: Define category priority
-    priority_order = ["top", "bottom", "shoes", "hat", "outer", "dress","bag"]
-    best_items_by_label = defaultdict(lambda: (None, -1))  # label -> (item, score)
+    priority_order = ["top", "bottom", "shoes", "hat", "outer", "dress", "bag"]
+    best_items_by_label = defaultdict(
+        lambda: (None, -1))  # label -> (item, score)
     for item in combined:
         path, label, score = item
         if score > best_items_by_label[label][1]:
@@ -131,18 +184,19 @@ def response_generation(
         if len(selected_items) == max_selected_items_mllm:
             break
     # Step 4: Unpack result
-    retrieved_image_paths, detected_labels, similarity_scores = zip(*selected_items)
+    retrieved_image_paths, detected_labels, similarity_scores = zip(
+        *selected_items)
     # Step 5: retrieval result
     retrieval_result = {
         "retrieved_image_paths": list(retrieved_image_paths),
         "detected_labels": list(detected_labels),
         "similarity_scores": list(similarity_scores)
     }
-    
+
     """ Construct the Prompt Message Payload """
     # Main Query
     content = [{
-        "type":"text",
+        "type": "text",
         "text": f"USER's QUERY: {user_query}"
     }]
     # Add the Query from the User
@@ -150,16 +204,16 @@ def response_generation(
         "type": "text",
         "text": f"This is the user photo in his/her style wearing an outfit."
     })
-     # Get Image Url accordingly
+    # Get Image Url accordingly
     IMAGE_DATA_URL = f"data:image/jpeg;base64,{query_image}"
     content.append({
-                    "type": "image_url",
-                    "image_url": {
-                        "url": IMAGE_DATA_URL
-                    }
-                })
+        "type": "image_url",
+        "image_url": {
+            "url": IMAGE_DATA_URL
+        }
+    })
     # Get Extra Info
-    i=1
+    i = 1
     print(retrieval_result["retrieved_image_paths"])
     for path in retrieval_result["retrieved_image_paths"]:
         # Get Data extra info for the image
@@ -172,24 +226,24 @@ def response_generation(
             raise KeyError(f"Concept '{concept}' not found in concept_dict.")
         extra_info = f"{i}. Extra Info on this image reference that matched to the user's outfit (only look at this if you find helpful):\n"
         for key in database['concept_dict'][concept].keys():
-            extra_info+=f"{key}: {database['concept_dict'][concept][key]}"
+            extra_info += f"{key}: {database['concept_dict'][concept][key]}"
         content.append({
-                        "type": "text",
-                        "text": f"{extra_info}"
-                    })
+            "type": "text",
+            "text": f"{extra_info}"
+        })
         # Get Image Url accordingly
         base64_image = compress_and_encode_image(path)
         IMAGE_DATA_URL = f"data:image/jpeg;base64,{base64_image}"
         content.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": IMAGE_DATA_URL
-                        }
-                    })
-        i+=1
+            "type": "image_url",
+            "image_url": {
+                "url": IMAGE_DATA_URL
+            }
+        })
+        i += 1
     # Construct the Final Message Payload
-    messages=[
-         {
+    messages = [
+        {
             "role": "system",
             "content": system_instruction_outfit_advisor
         },
@@ -198,7 +252,6 @@ def response_generation(
             "content": content
         }
     ]
-    
+
     """ Generate Output """
-    return {"response":groq_llama_completion(messages, token=1024)}
-    
+    return {"response": groq_llama_completion(messages, token=1024)}
