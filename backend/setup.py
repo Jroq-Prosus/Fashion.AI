@@ -1,5 +1,5 @@
 from transformers import CLIPModel, CLIPProcessor
-from transformers import  YolosImageProcessor, YolosForObjectDetection
+from transformers import YolosImageProcessor, YolosForObjectDetection
 from fastapi import Query
 from dotenv import load_dotenv
 from groq import Groq
@@ -10,6 +10,7 @@ import json
 import torch
 import os
 load_dotenv()
+
 
 class Initializer:
     _instance = None
@@ -23,16 +24,20 @@ class Initializer:
     def __init__(self):
         if self._initialized:
             return
-        
+
         # INITIALIZE VALUES
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
         self.max_selected_items_mllm = 5
         self.embed_dim = 768
-        self.data_dir = "assets/image_database"
+        self.data_dir = "./assets/image_database"
         self.index_path = f"{self.data_dir}/image.faiss"
         self.index = faiss.read_index(self.index_path)
+        self.database = {}
         with open(f"{self.data_dir}/database.json", "r") as f:
             self.database = json.load(f)
+
+        print("database", self.database)
         self.image_paths = [
             os.path.join(self.data_dir, f)
             for f in os.listdir(self.data_dir)
@@ -41,16 +46,20 @@ class Initializer:
 
         # LOAD YOLO MODEL - object detector
         self.ckpt = 'yainage90/fashion-object-detection-yolos-tiny'
-        self.yolo_image_processor = YolosImageProcessor.from_pretrained(self.ckpt)
-        self.yolo_model = YolosForObjectDetection.from_pretrained(self.ckpt).to(self.device)
+        self.yolo_image_processor = YolosImageProcessor.from_pretrained(
+            self.ckpt)
+        self.yolo_model = YolosForObjectDetection.from_pretrained(
+            self.ckpt).to(self.device)
 
         # LOAD CLIP VIT LARGE - image embedding
         self.clip_model_id = 'openai/clip-vit-large-patch14-336'
-        self.clip_model = CLIPModel.from_pretrained(self.clip_model_id).to(self.device)
-        self.feature_extractor = CLIPProcessor.from_pretrained(self.clip_model_id)
+        self.clip_model = CLIPModel.from_pretrained(
+            self.clip_model_id).to(self.device)
+        self.feature_extractor = CLIPProcessor.from_pretrained(
+            self.clip_model_id)
 
-        # LOAD GROQ CLIENT  
-        self.client_groq  = Groq()
+        # LOAD GROQ CLIENT
+        self.client_groq = Groq()
 
         # INITIALIZE
         self._initialized = True
