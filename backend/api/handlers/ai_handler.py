@@ -182,7 +182,7 @@ def response_generation(
     for label in priority_order:
         if label in best_items_by_label:
             selected_items.append(best_items_by_label[label][0])
-        if len(selected_items) == max_selected_items_mllm:
+        if len(selected_items) == Initializer.max_selected_items_mllm:
             break
     # Step 4: Unpack result
     retrieved_image_paths, detected_labels, similarity_scores = zip(
