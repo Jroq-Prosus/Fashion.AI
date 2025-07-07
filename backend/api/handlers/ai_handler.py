@@ -130,7 +130,9 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
     """ Getting Image Paths and Scores """
     retrieved_image_paths = []
     scores = []
+    print(Initializer.image_paths)
     for index_, dist_ in zip(indexes, dists):
+        print(index_)
         for i in range(len(index_)):
             retrieved_image_paths.append(Initializer.image_paths[index_[i]])
             scores.append(round(dist_[i], 4))
@@ -215,7 +217,6 @@ def response_generation(
     })
     # Get Extra Info
     i = 1
-    print(retrieval_result["retrieved_image_paths"])
     for path in retrieval_result["retrieved_image_paths"]:
         # Get Data extra info for the image
         concept = Initializer.database['path_to_concept'].get(path)

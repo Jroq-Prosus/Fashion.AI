@@ -30,7 +30,7 @@ class Initializer:
             "cuda" if torch.cuda.is_available() else "cpu")
         self.max_selected_items_mllm = 5
         self.embed_dim = 768
-        self.data_dir = "./assets/image_database"
+        self.data_dir = "assets/image_database"
         self.index_path = f"{self.data_dir}/image.faiss"
         self.index = faiss.read_index(self.index_path)
         self.database = {}
@@ -39,9 +39,9 @@ class Initializer:
 
         print("database", self.database)
         self.image_paths = [
-            os.path.join(self.data_dir, f)
+            os.path.join(self.data_dir, f).replace("\\", "/")
             for f in os.listdir(self.data_dir)
-            if f.lower().endswith((".png", ".jpg"))
+            if f.lower().endswith((".png", ".jpg", ".jpeg"))
         ]
 
         # LOAD YOLO MODEL - object detector
