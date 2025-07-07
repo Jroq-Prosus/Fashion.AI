@@ -8,6 +8,7 @@ import {
 } from '../lib/fetcher';
 import { ChatMessage, RetrievalResult } from '@/models/chat';
 import { ProductPreview } from '@/models/product';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -33,6 +34,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -93,6 +95,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
           const firstProduct = retrievalResult.products[0];
           const firstImage = retrievalResult.retrieved_image_paths[0];
           productPreview = {
+            id: firstProduct.id,
             image: firstImage,
             name: firstProduct.name,
             description: firstProduct.description,
@@ -160,6 +163,11 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     setSelectedImage(null);
   };
 
+  const handleAddToCart = (product: ProductPreview) => {
+    // TODO: Implement add to cart logic
+    alert(`Added ${product.name} to cart!`);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -211,6 +219,23 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
                         <div>
                           <div className="font-semibold text-base text-gray-800">{message.productPreview.name}</div>
                           <div className="text-sm text-gray-600 mt-1">{message.productPreview.description}</div>
+                          <div className="flex space-x-2 mt-2">
+                            {message.productPreview.id && (
+                              <button
+                                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-semibold hover:shadow-md transition-all duration-200"
+                                onClick={() => navigate(`/product/${message.productPreview.id}`)}
+                              >
+                                Visit
+                              </button>
+                            )}
+                            <button
+                              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 text-sm font-medium shadow-md hover:shadow-lg"
+                              onClick={() => handleAddToCart(message.productPreview)}
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4" /><circle cx="7" cy="21" r="1" /><circle cx="20" cy="21" r="1" /></svg>
+                              <span>Add to Cart</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}

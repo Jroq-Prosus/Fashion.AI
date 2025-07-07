@@ -8,6 +8,7 @@ export interface Product {
 }
 
 export interface ProductPreview {
+  id?: string;
   image: string;
   name: string;
   description: string;
