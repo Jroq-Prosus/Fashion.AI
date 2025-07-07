@@ -1,151 +1,88 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Sparkles, Mail, Phone, MapPin, Instagram, Twitter, Facebook } from 'lucide-react';
 
-const Footer: React.FC = () => {
+import React from 'react';
+import { Instagram, Twitter, Facebook, Mail, Phone, MapPin } from 'lucide-react';
+
+const Footer = () => {
   const footerSections = [
     {
-      title: 'Shop',
-      links: ['New Arrivals', 'Trending', 'Women', 'Men', 'Accessories', 'Sale']
-    },
-    {
-      title: 'AI Features',
-      links: ['Style Analysis', 'Voice Search', 'Image Recognition', 'Trend Prediction', 'Personal Stylist']
+      title: 'Company',
+      links: ['About Us', 'Our Story', 'Careers', 'Press'],
     },
     {
       title: 'Support',
-      links: ['Help Center', 'Size Guide', 'Returns', 'Shipping', 'Contact Us', 'FAQ']
+      links: ['Help Center', 'Size Guide', 'Returns', 'Contact Us'],
     },
     {
-      title: 'Company',
-      links: ['About Us', 'Careers', 'Press', 'Sustainability', 'Privacy', 'Terms']
-    }
+      title: 'Account',
+      links: ['My Orders', 'Wishlist', 'Style Profile', 'Rewards'],
+    },
+    {
+      title: 'Legal',
+      links: ['Terms of Service', 'Privacy Policy', 'Cookie Policy', 'AI Ethics'],
+    },
   ];
 
   return (
-    <footer className="bg-gray-900 text-white mt-20">
-      <div className="container mx-auto px-4 py-16">
-        {/* Main Footer Content */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-8 mb-12">
-          {/* Brand Section */}
+    <footer className="bg-gray-900 text-white py-12 mt-16">
+      <div className="container mx-auto px-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-8">
           <div className="lg:col-span-2">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-white to-gray-300 rounded-lg flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-gray-900" />
-                </div>
-                <span className="text-2xl font-bold">StyleAI</span>
-              </div>
-              <p className="text-gray-400 leading-relaxed mb-6">
-                Revolutionary AI-powered fashion discovery platform that understands your style 
-                and finds perfect matches through image and voice recognition technology.
-              </p>
-              
-              {/* Contact Info */}
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3 text-gray-400">
-                  <Mail className="w-4 h-4" />
-                  <span>hello@styleai.com</span>
-                </div>
-                <div className="flex items-center space-x-3 text-gray-400">
-                  <Phone className="w-4 h-4" />
-                  <span>+1 (555) 123-4567</span>
-                </div>
-                <div className="flex items-center space-x-3 text-gray-400">
-                  <MapPin className="w-4 h-4" />
-                  <span>San Francisco, CA</span>
-                </div>
-              </div>
-            </motion.div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
+              Fashionista AI
+            </div>
+            <p className="text-gray-400 mb-6 max-w-sm">
+              Discover fashion with the power of AI. Search, explore, and shop with intelligent recommendations tailored just for you.
+            </p>
+            <div className="flex space-x-4">
+              <a href="#" className="p-2 bg-gray-800 hover:bg-gray-700 rounded-full transition-colors">
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a href="#" className="p-2 bg-gray-800 hover:bg-gray-700 rounded-full transition-colors">
+                <Twitter className="w-4 h-4" />
+              </a>
+              <a href="#" className="p-2 bg-gray-800 hover:bg-gray-700 rounded-full transition-colors">
+                <Facebook className="w-4 h-4" />
+              </a>
+            </div>
           </div>
           
-          {/* Footer Links */}
           {footerSections.map((section, index) => (
-            <motion.div
-              key={section.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * (index + 1) }}
-            >
-              <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
-              <ul className="space-y-3">
-                {section.links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
-                      className="text-gray-400 hover:text-white transition-colors duration-300"
-                    >
+            <div key={index}>
+              <h3 className="font-semibold mb-4">{section.title}</h3>
+              <ul className="space-y-2">
+                {section.links.map((link, linkIndex) => (
+                  <li key={linkIndex}>
+                    <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
                       {link}
                     </a>
                   </li>
                 ))}
               </ul>
-            </motion.div>
+            </div>
           ))}
         </div>
         
-        {/* Newsletter */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-gray-800 rounded-2xl p-8 mb-12"
-        >
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div>
-              <h3 className="text-2xl font-bold mb-2">Stay Stylish</h3>
-              <p className="text-gray-400">
-                Get the latest fashion insights, AI-powered style tips, and exclusive offers delivered to your inbox.
-              </p>
+        <div className="border-t border-gray-800 mt-8 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <div className="flex items-center space-x-6 text-sm text-gray-400">
+              <div className="flex items-center space-x-2">
+                <Mail className="w-4 h-4" />
+                <span>hello@fashionista-ai.com</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Phone className="w-4 h-4" />
+                <span>1-800-FASHION</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-4 h-4" />
+                <span>Global Shipping</span>
+              </div>
             </div>
-            <div className="flex space-x-3">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white transition-colors"
-              />
-              <button className="px-6 py-3 bg-white text-gray-900 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Subscribe
-              </button>
+            <div className="text-sm text-gray-400">
+              © 2024 Fashionista AI. All rights reserved.
             </div>
           </div>
-        </motion.div>
-        
-        {/* Bottom Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-800"
-        >
-          <p className="text-gray-400 mb-4 md:mb-0">
-            © 2025 StyleAI. All rights reserved. Powered by advanced AI technology.
-          </p>
-          
-          {/* Social Links */}
-          <div className="flex items-center space-x-4">
-            {[
-              { icon: Instagram, label: 'Instagram' },
-              { icon: Twitter, label: 'Twitter' },
-              { icon: Facebook, label: 'Facebook' }
-            ].map(({ icon: Icon, label }) => (
-              <motion.a
-                key={label}
-                href="#"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-300"
-                aria-label={label}
-              >
-                <Icon className="w-5 h-5" />
-              </motion.a>
-            ))}
-          </div>
-        </motion.div>
+        </div>
       </div>
     </footer>
   );
