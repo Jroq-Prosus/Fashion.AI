@@ -35,7 +35,6 @@ Thumbs.db
 
 # Node/npm (if you use frontend with supabase)
 node_modules/
-*.lock
 
 # Database dumps
 *.sql
@@ -44,7 +43,6 @@ node_modules/
 # Large data files
 data/
 *.csv
-*.json
 *.parquet
 *.h5
 
@@ -52,9 +50,6 @@ data/
 *.pid
 *.tar
 docker-compose.override.yml
-
-# Jupyter Notebooks checkpoints
-.ipynb_checkpoints/
 
 # Tests artifacts
 .coverage
