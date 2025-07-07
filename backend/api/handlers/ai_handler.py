@@ -1,33 +1,29 @@
-from fastapi import APIRouter
 """ LOADING LIBRARIES """
-from llava.constants import IMAGE_TOKEN_INDEX
-from llava.conversation import conv_templates, SeparatorStyle
-from llava.mm_utils import process_images
-from transformers import TextStreamer
+from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List
 from io import BytesIO
 import torch
 from PIL import Image
 from fastapi import Query
-from PIL import Image
 import torch
 import base64
+import io
 from setup import Initializer
+from collections import defaultdict
 from models.image import ImagePayload
 from models.detection import DetectionInput
 from models.retrieval import RetrievalOutput
-from assets.prompt_template_setup import prompt_template
+from assets.prompt_template_setup import *
 
 router = APIRouter(prefix="/ai", tags=["Ai"])
 
 Initializer = Initializer.get_instance()
 
+
 @router.get("/")
 def read_root():
     return {"message": "Hello, FastAPI!"}
-
-# TODO: Move core logics to service layer
 
 @router.post("/object-detector")
 def object_detector(payload: ImagePayload):
@@ -38,7 +34,7 @@ def object_detector(payload: ImagePayload):
     # Object Detection
     with torch.no_grad():
         inputs = Initializer.yolo_image_processor(images=[image], return_tensors="pt")
-        outputs = Initializer.yolo_model(**inputs.to(Initializer.device))
+        outputs = Initializer.yolo_model(**inputs.to(device))
         target_sizes = torch.tensor([[image.size[1], image.size[0]]])
         results = Initializer.yolo_image_processor.post_process_object_detection(outputs, threshold=0.85, target_sizes=target_sizes)[0]
     
@@ -49,9 +45,9 @@ def object_detector(payload: ImagePayload):
             label = label.item()
             box = [i.item() for i in box]
             items["scores"].append(score)
-            items["labels"].append(label)
+            items["labels"].append(yolo_model.config.id2label[label])
             items["bboxes"].append(box)
-    # Output
+    # Return Output
     return items
 
 @router.post("/image-retrieval")
@@ -74,10 +70,11 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
     image_features = []
     dists, indexes = [], []
     # Perform image feature extraction
+    detected_labels = []
     inputs = Initializer.feature_extractor(images = cropped_objects, return_tensors="pt")
     for i in range(inputs['pixel_values'].size(0)):
         feature = inputs['pixel_values'][i].unsqueeze(0)
-        image_features = Initializer.clip_model.get_image_features(feature.to(Initializer.device))
+        image_features = Initializer.clip_model.get_image_features(feature.to(device))
         # Normalize the features
         image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)  
         image_features = image_features.detach().cpu().numpy()
@@ -86,6 +83,7 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
         # Getting the data of distance and index
         dists+= D.tolist()
         indexes += I.tolist()
+        detected_labels+=[payload.items.labels[i]]*k 
 
     """ Getting Image Paths and Scores """
     retrieved_image_paths = []
@@ -98,34 +96,72 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
     """ Return Output """
     return {
         "retrieved_image_paths":retrieved_image_paths,
-        "scores":scores}
+        "detected_labels":detected_labels,
+        "similarity_scores":scores}
 
-@router.post("/response-generation")
+@router.post("/response-generation-fasion-advisor")
 def response_generation(
     image: ImagePayload, 
     data: RetrievalOutput, 
     user_query: str = Query(...)
 ):
     """ Load the image """
-    # Decode base64 string to bytes
-    image_data = base64.b64decode(image.image_base64.split(",")[-1])
-    # Load the image with PIL
-    main_image = Image.open(BytesIO(image_data)).convert("RGB")
+    query_image = image.image_base64
+
+    """ Preprocess the Retrieval Output """
+    # Step 1: Combine all data
+    combined = list(zip(
+        data.retrieved_image_paths,
+        data.detected_labels,
+        data.similarity_scores
+    ))
+    # Step 2: Define category priority
+    priority_order = ["top", "bottom", "shoes", "hat", "outer", "dress","bag"]
+    best_items_by_label = defaultdict(lambda: (None, -1))  # label -> (item, score)
+    for item in combined:
+        path, label, score = item
+        if score > best_items_by_label[label][1]:
+            best_items_by_label[label] = (item, score)
+    # Step 3: Pick top 3 based on priority order
+    selected_items = []
+    for label in priority_order:
+        if label in best_items_by_label:
+            selected_items.append(best_items_by_label[label][0])
+        if len(selected_items) == max_selected_items_mllm:
+            break
+    # Step 4: Unpack result
+    retrieved_image_paths, detected_labels, similarity_scores = zip(*selected_items)
+    # Step 5: retrieval result
+    retrieval_result = {
+        "retrieved_image_paths": list(retrieved_image_paths),
+        "detected_labels": list(detected_labels),
+        "similarity_scores": list(similarity_scores)
+    }
     
-    """ Construct the image tensor """
-    # Initialize the images vector
-    images = [main_image]
-    # Add more images 
-    for path in data.retrieved_image_paths:
-        images.append(Image.open(path).convert("RGB"))
-    # Connvert to tensor
-    image_tensor = process_images(images, Initializer.image_processor, Initializer.model).to(Initializer.device, dtype=torch.float16)
-    image_sizes = [img.size for img in images]
-    
-    """ Construct the extra_info for prompt_template """
-    extra_info = ""
-    i = 1
-    for path in data.retrieved_image_paths:
+    """ Construct the Prompt Message Payload """
+    # Main Query
+    content = [{
+        "type":"text",
+        "text": f"USER's QUERY: {user_query}"
+    }]
+    # Add the Query from the User
+    content.append({
+        "type": "text",
+        "text": f"This is the user photo in his/her style wearing an outfit."
+    })
+     # Get Image Url accordingly
+    IMAGE_DATA_URL = f"data:image/jpeg;base64,{query_image}"
+    content.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": IMAGE_DATA_URL
+                    }
+                })
+    # Get Extra Info
+    i=1
+    print(retrieval_result["retrieved_image_paths"])
+    for path in retrieval_result["retrieved_image_paths"]:
+        # Get Data extra info for the image
         concept = Initializer.database['path_to_concept'].get(path)
         if concept is None:
             # Handle the error, e.g., return a 400 response or a default value
@@ -133,38 +169,35 @@ def response_generation(
         if concept not in Initializer.database['concept_dict']:
             # Handle missing concept
             raise KeyError(f"Concept '{concept}' not found in concept_dict.")
-        name = Initializer.database['concept_dict'][concept]["name"]
-        info = Initializer.database['concept_dict'][concept]["info"]
-        extra_info += f"{i}. <image>\n"
-        for key in Initializer.database['concept_dict']["<anya-forger>"].keys():
-            extra_info+=f"{key}: {Initializer.database['concept_dict']['<anya-forger>'][key]}, "
-        extra_info += "\n"
-        i +=1
-        
-    """ Change the prompt template """
-    prompt_chat = prompt_template.replace("<<extra_info>>",extra_info.rstrip()).replace("<<user_query>>",user_query)
-
-    """ Finalizing Response """
-    # Initialize Values
-    conv = conv_templates["llava_v0"].copy()
-    input_ids = Initializer.tokenizer_image_token(prompt_chat, Initializer.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(Initializer.model.device)
-    stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
-    keywords = [stop_str]
-    streamer = TextStreamer(Initializer.tokenizer, skip_prompt=True, skip_special_tokens=True)
-    # Model inferencing
-    with torch.inference_mode():
-        output_ids = Initializer.model.generate(
-            input_ids,
-            images=image_tensor,
-            image_sizes=image_sizes,
-            do_sample=False,
-            temperature=0,
-            max_new_tokens=512,
-            streamer=streamer,
-            use_cache=True)
-    # Decode the output
-    response = Initializer.tokenizer.decode(output_ids[0], skip_special_tokens=True)
-    print(prompt_chat)
-
-    """ Generate output """
-    return {"response": response}
+        extra_info = f"{i}. Extra Info on this image reference that matched to the user's outfit (only look at this if you find helpful):\n"
+        for key in database['concept_dict'][concept].keys():
+            extra_info+=f"{key}: {database['concept_dict'][concept][key]}"
+        content.append({
+                        "type": "text",
+                        "text": f"{extra_info}"
+                    })
+        # Get Image Url accordingly
+        base64_image = compress_and_encode_image(path)
+        IMAGE_DATA_URL = f"data:image/jpeg;base64,{base64_image}"
+        content.append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": IMAGE_DATA_URL
+                        }
+                    })
+        i+=1
+    # Construct the Final Message Payload
+    messages=[
+         {
+            "role": "system",
+            "content": system_instruction_outfit_advisor
+        },
+        {
+            "role": "user",
+            "content": content
+        }
+    ]
+    
+    """ Generate Output """
+    return {"response":groq_llama_completion(messages, token=1024)}
+    
