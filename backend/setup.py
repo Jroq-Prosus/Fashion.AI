@@ -1,13 +1,13 @@
-from llava.model.builder import load_pretrained_model
 from transformers import CLIPModel, CLIPProcessor
 from transformers import  YolosImageProcessor, YolosForObjectDetection
+from fastapi import Query
+from groq import Groq
+import numpy as np
 import faiss
 import torch
-from fastapi import Query
 import json
 import torch
 import os
-import numpy as np
 
 class Initializer:
     _instance = None
@@ -41,18 +41,15 @@ class Initializer:
         self.yolo_image_processor = YolosImageProcessor.from_pretrained(self.ckpt)
         self.yolo_model = YolosForObjectDetection.from_pretrained(self.ckpt).to(self.device)
 
-        # LOAD RAP-LLaVA MODEL
-        self.rap_model_id = "Hoar012/RAP-LLaVA-13b"
-        self.rap_model_name = "RAP-LLaVA-13b"
-        self.tokenizer, self.model, self.image_processor, self.context_len = load_pretrained_model(
-            self.rap_model_id, None, self.rap_model_name, device=self.device
-        )
-
         # LOAD CLIP VIT LARGE - image embedding
         self.clip_model_id = 'openai/clip-vit-large-patch14-336'
         self.clip_model = CLIPModel.from_pretrained(self.clip_model_id).to(self.device)
         self.feature_extractor = CLIPProcessor.from_pretrained(self.clip_model_id)
 
+        # LOAD GROQ CLIENT  
+        self.client_groq  = Groq()
+
+        # INITIALIZE
         self._initialized = True
 
     def __getattr__(self, name):
