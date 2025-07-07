@@ -5,7 +5,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from postgrest.exceptions import APIError
 from dotenv import load_dotenv
 
-from api.handlers import product_handler, ai_handler, user_handler, ai_trend_geo_handler
+from api.handlers import product_handler, ai_handler, user_handler, voice_handler as voi, ai_trend_geo_handler
 from utils.response import standard_response
 
 load_dotenv('../.env')  # Load .env file ke environment variables
@@ -32,6 +32,7 @@ app = FastAPI(swagger_ui_parameters={"syntaxHighlight": {"theme": "obsidian"}})
 app.include_router(product_handler.router)
 app.include_router(user_handler.router)
 app.include_router(ai_handler.router)
+app.include_router(voi.router)
 app.include_router(ai_trend_geo_handler.router)
 
 # -------------------------------
