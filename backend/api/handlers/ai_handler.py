@@ -172,8 +172,8 @@ def response_generation(
             # Handle missing concept
             raise KeyError(f"Concept '{concept}' not found in concept_dict.")
         extra_info = f"{i}. Extra Info on this image reference that matched to the user's outfit (only look at this if you find helpful):\n"
-        for key in database['concept_dict'][concept].keys():
-            extra_info+=f"{key}: {database['concept_dict'][concept][key]}"
+        for key in Initializer.database['concept_dict'][concept].keys():
+            extra_info+=f"{key}: {Initializer.database['concept_dict'][concept][key]}"
         content.append({
                         "type": "text",
                         "text": f"{extra_info}"
