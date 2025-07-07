@@ -1,48 +1,204 @@
 {
     "concept_dict": {
-        "<anya-forger>": {
-            "name": "anya-forger",
-            "image": "image_database/Anya Forger.png",
-            "info": "<anya-forger> is a small girl with short pink hair, green eyes, and distinctive horn-like accessories. She wears a black and gold school uniform and has an expressive, curious face.",
-            "category": "anime character"
+        "c14eca00-1867-4199-ac4a-f93543a24456": {
+            "product_id": "c14eca00-1867-4199-ac4a-f93543a24456",
+            "name": "Dark Blue Denim Jacket",
+            "brand": "Tommy Hilfiger",
+            "gender": "men",
+            "category": "outer",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A classic dark blue denim jacket made from high-quality denim fabric. Features a collar, button-front closure, and two breast pockets. Perfect for everyday casual wear.",
+            "image": "assets/image_database/4. Jeans.png"
         },
-        "<bond-forger>": {
-            "name": "bond-forger",
-            "image": "image_database/Bond Forger.png",
-            "info": "<bond-forger> is a large white dog with fluffy fur and a gentle demeanor. He has precognitive abilities and often helps the Forger family in their missions.",
-            "category": "anime character"
+        "9d01e14e-99e9-48f2-b308-078af65785b0": {
+            "product_id": "9d01e14e-99e9-48f2-b308-078af65785b0",
+            "name": "Classic Pencil Skirt",
+            "brand": "EleganceWear",
+            "gender": "women",
+            "category": "skirt",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A tailored pencil skirt made from high-quality cotton blend fabric, offering a comfortable and versatile fit for everyday office or casual wear.",
+            "image": "assets/image_database/white curly skirt.jpeg"
         },
-        "<loid-forger>": {
-            "name": "loid-forger",
-            "image": "image_database/Loid Forger.png",
-            "info": "<loid-forger> is a tall man with blonde hair and blue eyes. Known as 'Twilight', he is a master spy who assumes the identity of Loid Forger, a loving father and psychiatrist.",
-            "category": "anime character"
+        "52f77aed-b293-494f-a135-0f5b88625db9": {
+            "product_id": "52f77aed-b293-494f-a135-0f5b88625db9",
+            "name": "Classic Fit Denim Jeans",
+            "brand": "UrbanWear",
+            "gender": "women",
+            "category": "bottom",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A pair of classic fit denim jeans made from high-quality denim fabric. Perfect for everyday casual wear.",
+            "image": "assets/image_database/black jeans.JPG"
         },
-        "<yor-forger>": {
-            "name": "yor-forger",
-            "image": "image_database/Yor Forger.png",
-            "info": "<yor-forger> is a devoted and protective mother figure to Anya, always striving to keep her safe despite her secret life as an assassin. Though awkward at times, her love for Anya is sincere and unwavering.",
-            "category": "anime character"
+        "82850915-fc82-4aa7-84db-0b1e2b1ade0a": {
+            "product_id": "82850915-fc82-4aa7-84db-0b1e2b1ade0a",
+            "name": "Womens Crew Neck Short Sleeve T-Shirt with Star Details",
+            "brand": "FashionBrand",
+            "gender": "women",
+            "category": "top",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A classic women's crew neck t-shirt made from high-quality, soft-touch fabric. Features a relaxed fit, short sleeves, and stylish star details at the back of the neck. Perfect for everyday casual wear.",
+            "image": "assets/image_database/2. Tshirt.jpg"
         },
-        "<Clara>": {
-                    "name": "Clara",
-                    "image": "image_database/girlfriend.png",
-                    "info": "<Clara> is my girlfriend. She really loves me.",
-                    "category": "real person"
+        "9d976bb8-2849-432d-9c58-a56677dd07e5": {
+            "product_id": "9d976bb8-2849-432d-9c58-a56677dd07e5",
+            "name": "Dark Blue Denim Jeans",
+            "brand": "Unknown",
+            "gender": "women",
+            "category": "bottom",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "Dark blue denim jeans with elastic waistband, suitable for everyday casual wear. Made from high-quality denim fabric, these jeans feature orange stitching and a slim fit.",
+            "image": "assets/image_database/3. jeans.jpg"
         },
-        "<me>": {
-                    "name": "me",
-                    "image": "image_database/me.png",
-                    "info": "<me> is myself. This is me.",
-                    "category": "real person"
+        "48e8dd64-a256-4612-9d7a-776a48dc6d99": {
+            "product_id": "48e8dd64-a256-4612-9d7a-776a48dc6d99",
+            "name": "Elegant White Spaghetti Strap Dress",
+            "brand": "Unknown",
+            "gender": "women",
+            "category": "dress",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A classic white dress made from lightweight and breathable fabric, perfect for summer or formal events. Features a V-neckline, spaghetti straps, and a flowy skirt.",
+            "image": "assets/image_database/one_piece dress.PNG"
+        },
+        "9c853629-4fdf-44c1-93bc-424ed2d1d782": {
+            "product_id": "9c853629-4fdf-44c1-93bc-424ed2d1d782",
+            "name": "Black Leather Loafers with Gold Buckle",
+            "brand": "Unknown",
+            "gender": "men",
+            "category": "shoes",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "Elegant black leather loafers featuring a gold buckle detail, perfect for formal or business casual occasions.",
+            "image": "assets/image_database/black shoe.jpg"
+        },
+        "5bd6e616-67bd-462e-9f4f-b402677a85eb": {
+            "product_id": "5bd6e616-67bd-462e-9f4f-b402677a85eb",
+            "name": "Light Blue Striped Button-Down Shirt",
+            "brand": "Unknown",
+            "gender": "men",
+            "category": "top",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A classic button-down shirt made from a cotton-blend fabric, featuring a light blue and white striped pattern. The shirt has a regular fit, long sleeves, and a point collar. It is suitable for everyday casual wear or office-casual occasions.",
+            "image": "assets/image_database/blue stripe shirt.PNG"
+        },
+        "2857581b-2460-4aa3-a441-da81f70f877b": {
+            "product_id": "2857581b-2460-4aa3-a441-da81f70f877b",
+            "name": "White Chunky Sole Sneakers",
+            "brand": "Unknown",
+            "gender": "women",
+            "category": "shoes",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A pair of white chunky sole sneakers made from high-quality materials. Perfect for everyday casual wear.",
+            "image": "assets/image_database/white shoes.JPG"
+        },
+        "7002f857-6c03-4f60-aa5c-7663a0600e97": {
+            "product_id": "7002f857-6c03-4f60-aa5c-7663a0600e97",
+            "name": "All-White Leather Low-Top Sneakers",
+            "brand": "Acad",
+            "gender": "men",
+            "category": "shoes",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A pair of all-white leather low-top sneakers featuring a classic lace-up design, perforated details for ventilation, and a durable rubber outsole. Made from high-quality leather for a sleek and stylish look, perfect for casual wear.",
+            "image": "assets/image_database/branded shoes.jpg"
+        },
+        "12db3c54-7b30-49af-b4e9-2533c97ab6fd": {
+            "product_id": "12db3c54-7b30-49af-b4e9-2533c97ab6fd",
+            "name": "Classic Flap Crossbody Bag",
+            "brand": "UrbanAccessories",
+            "gender": "women",
+            "category": "bag",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A stylish crossbody bag made from high-quality leather, featuring a gold-tone buckle and adjustable strap. Perfect for everyday casual use.",
+            "image": "assets/image_database/1_bag.JPG"
+        },
+        "6acdd5d9-863c-47f9-8d2c-e03730764759": {
+            "product_id": "6acdd5d9-863c-47f9-8d2c-e03730764759",
+            "name": "Black Suede Kitten Heel Pumps",
+            "brand": "Unknown",
+            "gender": "women",
+            "category": "shoes",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "Elegant black suede pumps with a kitten heel and adjustable ankle strap. Perfect for dressing up for a night out or special occasion.",
+            "image": "assets/image_database/5-heels.jpeg"
+        },
+        "2c2c389f-7f92-433b-a518-afde5792ae9b": {
+            "product_id": "2c2c389f-7f92-433b-a518-afde5792ae9b",
+            "name": "Classic Fit Dress Shirt",
+            "brand": "Lands End",
+            "gender": "women",
+            "category": "top",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A classic fit dress shirt made from high-quality fabric, featuring a button-down collar and long sleeves. Perfect for office-casual wear.",
+            "image": "assets/image_database/3. whiteshirt.jpg"
+        },
+        "95d982a4-9a6b-4643-b52a-f93a527e0a55": {
+            "product_id": "95d982a4-9a6b-4643-b52a-f93a527e0a55",
+            "name": "Adidas Samba Classic Sneakers",
+            "brand": "Adidas",
+            "gender": "men",
+            "category": "shoes",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "The Adidas Samba Classic Sneakers feature a white and beige upper with iconic black stripes, a gum rubber outsole, and a comfortable fit. Perfect for casual wear, these shoes are made from high-quality materials, including leather and suede, offering durability and style.",
+            "image": "assets/image_database/2. Sneakers.png"
+        },
+        "87cf709f-0be3-4281-90b6-75f976c4fca7": {
+            "product_id": "87cf709f-0be3-4281-90b6-75f976c4fca7",
+            "name": "Houndstooth Blazer",
+            "brand": "A-KRIS",
+            "gender": "women",
+            "category": "outer",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A classic houndstooth blazer made from high-quality fabric, featuring a fitted silhouette, two-button front, and side pockets. Perfect for office-casual or everyday wear.",
+            "image": "assets/image_database/3. blazer.png"
+        },
+        "a98ea281-b199-4c51-81c6-cad2fbeafd24": {
+            "product_id": "a98ea281-b199-4c51-81c6-cad2fbeafd24",
+            "name": "Classic Blue Striped Button-Down Shirt",
+            "brand": "Unknown",
+            "gender": "women",
+            "category": "top",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A classic button-down shirt made from high-quality fabric with a blue and white stripe pattern. It features a collar, three-quarter sleeves, and a relaxed fit, perfect for office-casual or everyday wear.",
+            "image": "assets/image_database/blue shirt.PNG"
+        },
+        "22562d85-774e-40b5-bf0b-5df899ad497d": {
+            "product_id": "22562d85-774e-40b5-bf0b-5df899ad497d",
+            "name": "Cable Knit Button Front Cardigan",
+            "brand": "MELO SHOP",
+            "gender": "women",
+            "category": "outer",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A pastel pink cardigan made from soft, cable knit fabric. Features a button-front design and ribbed cuffs. Perfect for layering on chilly days.",
+            "image": "assets/image_database/2. pinky.PNG"
+        },
+        "3336d904-a458-4ba7-83d0-d196a423babc": {
+            "product_id": "3336d904-a458-4ba7-83d0-d196a423babc",
+            "name": "Classic A-Line Mini Skirt",
+            "brand": "Elegance",
+            "gender": "women",
+            "category": "skirt",
+            "product_link": "http://<xxxxxxxx.com>",
+            "description": "A classic A-line mini skirt made from high-quality fabric, perfect for everyday casual wear or dressing up for a night out.",
+            "image": "assets/image_database/1-skirt.png"
         }
     },
     "path_to_concept": {
-        "image_database/Anya Forger.png": "<anya-forger>",
-        "image_database/Bond Forger.png": "<bond-forger>",
-        "image_database/Loid Forger.png": "<loid-forger>",
-        "image_database/Yor Forger.png": "<yor-forger>",
-        "image_database/girlfriend.png": "<Clara>",
-        "image_database/me.png": "<me>"
+        "assets/image_database/4. Jeans.png": "c14eca00-1867-4199-ac4a-f93543a24456",
+        "assets/image_database/white curly skirt.jpeg": "9d01e14e-99e9-48f2-b308-078af65785b0",
+        "assets/image_database/black jeans.JPG": "52f77aed-b293-494f-a135-0f5b88625db9",
+        "assets/image_database/2. Tshirt.jpg": "82850915-fc82-4aa7-84db-0b1e2b1ade0a",
+        "assets/image_database/3. jeans.jpg": "9d976bb8-2849-432d-9c58-a56677dd07e5",
+        "assets/image_database/one_piece dress.PNG": "48e8dd64-a256-4612-9d7a-776a48dc6d99",
+        "assets/image_database/black shoe.jpg": "9c853629-4fdf-44c1-93bc-424ed2d1d782",
+        "assets/image_database/blue stripe shirt.PNG": "5bd6e616-67bd-462e-9f4f-b402677a85eb",
+        "assets/image_database/white shoes.JPG": "2857581b-2460-4aa3-a441-da81f70f877b",
+        "assets/image_database/branded shoes.jpg": "7002f857-6c03-4f60-aa5c-7663a0600e97",
+        "assets/image_database/1_bag.JPG": "12db3c54-7b30-49af-b4e9-2533c97ab6fd",
+        "assets/image_database/5-heels.jpeg": "6acdd5d9-863c-47f9-8d2c-e03730764759",
+        "assets/image_database/3. whiteshirt.jpg": "2c2c389f-7f92-433b-a518-afde5792ae9b",
+        "assets/image_database/2. Sneakers.png": "95d982a4-9a6b-4643-b52a-f93a527e0a55",
+        "assets/image_database/3. blazer.png": "87cf709f-0be3-4281-90b6-75f976c4fca7",
+        "assets/image_database/blue shirt.PNG": "a98ea281-b199-4c51-81c6-cad2fbeafd24",
+        "assets/image_database/2. pinky.PNG": "22562d85-774e-40b5-bf0b-5df899ad497d",
+        "assets/image_database/1-skirt.png": "3336d904-a458-4ba7-83d0-d196a423babc"
     }
 }

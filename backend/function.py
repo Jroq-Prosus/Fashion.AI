@@ -1,4 +1,10 @@
+import io
+import base64
 from setup import Initializer
+from PIL import Image
+
+Initializer = Initializer.get_instance()
+
 
 def groq_llama_completion(messages, token=1024):
     completion = Initializer.client_groq.chat.completions.create(
@@ -17,6 +23,7 @@ def groq_llama_completion(messages, token=1024):
         inference_result += chunk_inference
         print(chunk_inference, end="")
     return inference_result
+
 
 def compress_and_encode_image(image_path, max_size=(512, 512), quality=70):
     image = Image.open(image_path).convert("RGB")
