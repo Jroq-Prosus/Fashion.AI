@@ -4,21 +4,20 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from postgrest.exceptions import APIError
 from dotenv import load_dotenv
-
 from api.handlers import product_handler, ai_handler, user_handler, voice_handler as voi, ai_trend_geo_handler
 from utils.response import standard_response
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv('../.env')  # Load .env file ke environment variables
 
-app = FastAPI(title="Product Metadata API")
+app = FastAPI(title="Product Metadata API", swagger_ui_parameters={"syntaxHighlight": {"theme": "obsidian"}})
 
 # -------------------------------
 # Configure CORS
 # -------------------------------
-from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=["*", 'http://localhost:8080/*'],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
@@ -27,7 +26,6 @@ app.add_middleware(
 # -------------------------------
 # Configure API Documentation 
 # -------------------------------
-app = FastAPI(swagger_ui_parameters={"syntaxHighlight": {"theme": "obsidian"}})
 
 app.include_router(product_handler.router)
 app.include_router(user_handler.router)

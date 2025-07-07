@@ -45,6 +45,7 @@ data/
 *.csv
 *.parquet
 *.h5
+private_keys.json
 
 # Docker
 *.pid
