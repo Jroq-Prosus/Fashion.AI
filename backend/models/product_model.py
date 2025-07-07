@@ -8,7 +8,12 @@ class Review(BaseModel):
 
 class Product(BaseModel):
     id: str
-    title: str
-    material_info: str
+    name: str        # ganti dari title ke name
+    material_info: Optional[str] = None  # sekarang nullable
     description: str
+    brand: str
+    gender: str
+    category: str
+    product_link: str
+    image: str
     reviews: Optional[List[Review]] = []
