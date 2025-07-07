@@ -11,11 +11,14 @@ import base64
 import io
 from setup import Initializer
 from function import groq_llama_completion, compress_and_encode_image
+from api.handlers.ai_trend_geo_handler import get_trendy_store_locations_api
 from collections import defaultdict
 from models.image import ImagePayload
 from models.detection import DetectionInput
 from models.retrieval import RetrievalOutput
+from models.user import FashionAdvisorInput,UserQuery
 from fastapi import File, UploadFile
+from models.trend_geo import TrendGeoRequest
 from assets.prompt_template_setup import *
 
 router = APIRouter(prefix="/ai", tags=["Ai"])
@@ -254,3 +257,79 @@ def response_generation(
 
     """ Generate Output """
     return {"response": groq_llama_completion(messages, token=1024)}
+
+@router.post("/fashion-advisor-visual")
+def full_fashion_advisor(payload: FashionAdvisorInput):
+    """
+    Purpose: A full pipeline endpoint that performs object detection,
+    image retrieval, and fashion response generation in a single call.
+    Input: Base64 image and user query
+    Output: Generated fashion advice response
+    """
+    # Step 1: Object Detection
+    detection_payload = ImagePayload(image_base64=payload.image_base64)
+    detection_result = object_detector(detection_payload)
+
+    # Step 2: Image Retrieval
+    retrieval_payload = DetectionInput(
+        image_base64=payload.image_base64,
+        items=detection_result
+    )
+    k = 3
+    retrieval_result = image_retrieval(retrieval_payload, k)
+
+    # Step 3: Response Generation
+    image_payload = ImagePayload(image_base64=payload.image_base64)
+    retrieval_output = RetrievalOutput(**retrieval_result)
+
+    return response_generation(
+        image=image_payload,
+        data=retrieval_output,
+        user_query=payload.user_query
+    )
+
+@router.post("/online-search-agent")
+async def online_agent(payload: UserQuery):
+    # Simplify Query
+    messages = [
+        {
+            "role": "system",
+            "content": system_instruction_simplify_prompt
+        },
+        {
+            "role": "user",
+            "content": [{
+                        "type": "text",
+                        "text": f"User Query: {payload.user_query}"
+                         }]  
+        }
+    ]
+    simplified_query = groq_llama_completion(messages, token=1024)
+    print(simplified_query)
+    # Make product description
+    messages = [
+        {
+            "role": "system",
+            "content": system_instruction_product_desc
+        },
+        {
+            "role": "user",
+            "content": [{
+                        "type": "text",
+                        "text": f"User Query: {payload.user_query}"
+                         }]  
+        }
+    ]
+    description  = groq_llama_completion(messages, token=1024)
+    print(description)
+    # Get trend score API
+    data = {
+            "product_metadata": {
+                "description":description
+            },
+            "user_style_description": simplified_query,
+            "user_location": "San Francisco, CA"
+        }
+    result = await get_trendy_store_locations_api(TrendGeoRequest(**data))
+    return {"response":result}
+
