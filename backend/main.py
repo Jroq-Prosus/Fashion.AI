@@ -17,7 +17,7 @@ app = FastAPI(title="Product Metadata API", swagger_ui_parameters={"syntaxHighli
 # -------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", 'http://localhost:8080/*'],  # Allow all origins for development
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers

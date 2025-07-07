@@ -4,6 +4,7 @@ import {
   detectObjects,
   imageRetrieval,
   onlineSearchAgent,
+  generateFashionAdvisorResponse,
 } from '../lib/fetcher';
 
 interface ChatMessage {
@@ -85,9 +86,16 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
           items,
         });
         console.log('retrievalResult', retrievalResult);
-        aiResponse = retrievalResult && retrievalResult.message
-          ? retrievalResult.message
-          : 'Image retrieval completed.';
+        // 3. Generate fashion advisor response
+        const advisorResponse = await generateFashionAdvisorResponse(
+          image,
+          retrievalResult,
+          query || ''
+        );
+        console.log('advisorResponse', advisorResponse);
+        aiResponse = advisorResponse && advisorResponse.response
+          ? advisorResponse.response
+          : 'AI response generated.';
       } else if (query) {
         // Text only: online search agent
         const result = await onlineSearchAgent(query);

@@ -14,7 +14,6 @@ export async function fetcher(path: string, options?: RequestInit) {
 // Modular API functions for backend endpoints
 
 export async function detectObjects(imageBase64: string) {
-  console.log('imageBase64', imageBase64);
   return fetcher('/ai/object-detector', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -34,7 +33,7 @@ export async function generateFashionAdvisorResponse(image: string | null, data:
   return fetcher(`/ai/response-generation-fasion-advisor?user_query=${encodeURIComponent(userQuery)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image, data }),
+    body: JSON.stringify({ image: { image_base64: image }, data }),
   });
 }
 
