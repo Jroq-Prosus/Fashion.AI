@@ -3,4 +3,5 @@ from typing import List
 
 class RetrievalOutput(BaseModel):
     retrieved_image_paths: List[str]
-    scores: List[float]
+    detected_labels: List[str]
+    similarity_scores: List[float]
