@@ -8,7 +8,6 @@ class Review(BaseModel):
 
 class ProductMetadata(BaseModel):
     id: str
-    product_id: str  # UUID tambahan
     name: str        # ganti dari title ke name
     material_info: Optional[str] = None  # nullable
     description: str
