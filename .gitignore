@@ -72,3 +72,4 @@ dist/
 # Ignore uploads folder
 uploads/
 uploads/*
+knowledge_base/
