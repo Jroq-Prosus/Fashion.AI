@@ -12,8 +12,7 @@ from uagents_core.identity import Identity
 load_dotenv()
 
 ASI_ONE_API_KEY = os.getenv("ASI_ONE_API_KEY")
-TAVILY_AGENT_ADDRESS = 'test-agent://agent1qfwasaphvh2vdnchfzm3q7kpz6xerffgu3aflf6hx5ng543rq5e0swvxmcq'
-# TAVILY_AGENT_ADDRESS = 'test-agent://agent1qg5w75lu5ylf9valw9yryrd787vfc4zcgxl870ka97wmkytlgd8n76y0re0'
+TAVILY_AGENT_ADDRESS = os.getenv("TAVILY_AGENT_ADDRESS", 'test-agent://agent1qfwasaphvh2vdnchfzm3q7kpz6xerffgu3aflf6hx5ng543rq5e0swvxmcq')
 ASI_ONE_URL = "https://api.asi1.ai/v1/chat/completions"
 
 

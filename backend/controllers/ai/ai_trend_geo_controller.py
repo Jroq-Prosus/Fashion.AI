@@ -4,8 +4,9 @@ from models.trend import WebSearchResponse, WebSearchResult
 import json
 from uagents.communication import send_sync_message
 from uagents_core.envelope import Envelope
+import os
 
-STORE_EXTRACTOR_AGENT_ADDRESS = "test-agent://agent1qfdpqgj0q8qa6m7hzjzdhguu93gvwdpgg50vuskgmz2wu8p8p4ujww6zvpd"
+STORE_EXTRACTOR_AGENT_ADDRESS = os.getenv("STORE_EXTRACTOR_AGENT_ADDRESS", "test-agent://agent1qfdpqgj0q8qa6m7hzjzdhguu93gvwdpgg50vuskgmz2wu8p8p4ujww6zvpd")
 
 async def get_trendy_store_locations(product_metadata: dict, user_style_description: str, user_location: str) -> List[Dict]:
     """

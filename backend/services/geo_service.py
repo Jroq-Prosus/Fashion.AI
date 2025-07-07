@@ -8,7 +8,7 @@ from uagents_core.envelope import Envelope
 import json
 
 # Google Geo Agent address from knowledge base
-GOOGLE_GEO_AGENT_ADDRESS = "test-agent://agent1q0d0xt2yax6zp5jk2qkmj6skjxz5fyt6e3lay2ehcrllcyytvjcqq53yj8c"
+GOOGLE_GEO_AGENT_ADDRESS = os.getenv("GOOGLE_GEO_AGENT_ADDRESS", "test-agent://agent1q0d0xt2yax6zp5jk2qkmj6skjxz5fyt6e3lay2ehcrllcyytvjcqq53yj8c")
 
 async def get_lat_lon_async(address: str, timeout: float = 60.0) -> Optional[Tuple[float, float]]:
     """
