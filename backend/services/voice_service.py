@@ -1,8 +1,11 @@
 from groq import Groq
 from io import BytesIO
+import os
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # Initialize Groq client
-client = Groq()
+client = Groq(api_key=GROQ_API_KEY)  # Replace with your actual Groq API key
 
 def recognize_speech_from_audio(audio_bytes: bytes) -> str:
     # Convert audio bytes to a file-like object
@@ -19,7 +22,7 @@ def recognize_speech_from_audio(audio_bytes: bytes) -> str:
             temperature=0.0  # Optional: deterministic
         )
         # Return only the transcript text
-        return transcription['text']
+        return transcription
 
     except Exception as e:
         raise RuntimeError(f"Groq speech-to-text error: {e}")

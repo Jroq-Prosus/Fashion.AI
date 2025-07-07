@@ -27,7 +27,6 @@ Thumbs.db
 
 # Env variables
 .env
-.env.*
 
 # Supabase artifacts
 .supabase/

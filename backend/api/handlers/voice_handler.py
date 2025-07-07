@@ -1,10 +1,10 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
-from utils.standard_response import standard_response
-from controllers.voice_controller import handle_voice_to_text
+from utils.response import standard_response
+from controllers.ai.voice_controller import handle_voice_to_text
 
 router = APIRouter()
 
-ALLOWED_AUDIO_TYPES = ["audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3"]
+ALLOWED_AUDIO_TYPES = ["audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3", "video/mp4"]
 MAX_AUDIO_SIZE = 5 * 1024 * 1024  # 5 MB
 
 @router.post("/voice-to-text", status_code=status.HTTP_200_OK)
