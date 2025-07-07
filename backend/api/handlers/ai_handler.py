@@ -10,6 +10,7 @@ import torch
 import base64
 import io
 from setup import Initializer
+from collections import defaultdict
 from models.image import ImagePayload
 from models.detection import DetectionInput
 from models.retrieval import RetrievalOutput
