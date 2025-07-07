@@ -53,7 +53,6 @@ class Initializer:
         self.database = supabase
 
         # Fetch image paths from Supabase Storage (bucket: product-images)
-        print('response', image_response)
         image_files = [
             f["name"] for f in image_response if f["name"].lower().endswith((".png", ".jpg", ".jpeg"))
         ]

@@ -6,14 +6,11 @@ import {
   onlineSearchAgent,
   generateFashionAdvisorResponse,
 } from '../lib/fetcher';
+import { ChatMessage, RetrievalResult } from '@/models/chat';
+import { ProductPreview } from '@/models/product';
 
-interface ChatMessage {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-  isTyping?: boolean;
-}
+
+
 
 interface ChatRoomProps {
   isOpen: boolean;
@@ -57,17 +54,17 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     return newMessage.id;
   };
 
-  const updateMessage = (messageId: string, text: string) => {
+  const updateMessage = (messageId: string, text: string, options?: any) => {
     setMessages(prev => prev.map(msg => 
-      msg.id === messageId ? { ...msg, text, isTyping: false } : msg
+      msg.id === messageId ? { ...msg, text, isTyping: false, ...options } : msg
     ));
   };
 
-  // Modular AI workflow handler
   const handleAIWorkflow = async (query: string, image?: string, voice?: boolean) => {
     setIsProcessing(true);
     const typingMessageId = addMessage('', false, true);
     let aiResponse = '';
+    let productPreview: ProductPreview | undefined = undefined;
     try {
       if (image) {
         // 1. Detect objects
@@ -81,12 +78,26 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
           scores: detectionResult.scores || [],
         };
         // 2. Image retrieval
-        const retrievalResult = await imageRetrieval({
+        const retrievalResult: RetrievalResult = await imageRetrieval({
           image_base64: image,
           items,
         });
-        console.log('retrievalResult', retrievalResult);
+
         // 3. Generate fashion advisor response
+        if (
+          retrievalResult.products &&
+          retrievalResult.products.length > 0 &&
+          retrievalResult.retrieved_image_paths &&
+          retrievalResult.retrieved_image_paths.length > 0
+        ) {
+          const firstProduct = retrievalResult.products[0];
+          const firstImage = retrievalResult.retrieved_image_paths[0];
+          productPreview = {
+            image: firstImage,
+            name: firstProduct.name,
+            description: firstProduct.description,
+          };
+        }
         const advisorResponse = await generateFashionAdvisorResponse(
           image,
           retrievalResult,
@@ -104,7 +115,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     } catch (error: any) {
       aiResponse = error.message || 'An error occurred.';
     }
-    updateMessage(typingMessageId, aiResponse);
+    updateMessage(typingMessageId, aiResponse, { productPreview });
     setIsProcessing(false);
   };
 
@@ -188,7 +199,22 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
                     <span className="text-sm">AI is thinking...</span>
                   </div>
                 ) : (
-                  <p className="whitespace-pre-line">{message.text}</p>
+                  <>
+                    <p className="whitespace-pre-line">{message.text}</p>
+                    {message.productPreview && (
+                      <div className="mt-4 flex items-center space-x-4 bg-white rounded-xl shadow p-3 border border-gray-200">
+                        <img
+                          src={message.productPreview.image}
+                          alt={message.productPreview.name}
+                          className="w-20 h-20 object-cover rounded-lg border"
+                        />
+                        <div>
+                          <div className="font-semibold text-base text-gray-800">{message.productPreview.name}</div>
+                          <div className="text-sm text-gray-600 mt-1">{message.productPreview.description}</div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
                 <p className={`text-xs mt-2 ${message.isUser ? 'text-purple-100' : 'text-gray-500'}`}>
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

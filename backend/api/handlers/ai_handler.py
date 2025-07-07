@@ -142,11 +142,22 @@ def image_retrieval(payload: DetectionInput, k: int = Query(5, description="Numb
     detected_labels = detected_labels[:k]
     scores = scores[:k]
 
+    # Retrieve product metadata for each image path
+    products = []
+    for path in retrieved_image_paths:
+        db_path = translate_url(path)
+        response = Initializer.database.table("products").select("*").eq("image", db_path).execute()
+        if response.data and len(response.data) > 0:
+            products.append(response.data[0])
+        else:
+            products.append(None)  # or skip, depending on requirements
+
     """ Return Output """
     return {
         "retrieved_image_paths": retrieved_image_paths,
         "detected_labels": detected_labels,
-        "similarity_scores": scores
+        "similarity_scores": scores,
+        "products": products
     }
 
 
@@ -253,7 +264,6 @@ def response_generation(
             }
         })
         i += 1
-    print("content", content)
     # Construct the Final Message Payload
     messages = [
         {
