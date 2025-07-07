@@ -1,21 +1,19 @@
-""" LOADING LIBRARIES """
-from fastapi import APIRouter
-from pydantic import BaseModel
-from typing import List
-from io import BytesIO
-import torch
-from PIL import Image
-from fastapi import Query
 import torch
 import base64
-import io
+
+from fastapi import APIRouter, Query
+from io import BytesIO
+from PIL import Image
 from setup import Initializer
 from function import groq_llama_completion, compress_and_encode_image
 from collections import defaultdict
+from models.chat import MultimodalChatRequest
 from models.image import ImagePayload
 from models.detection import DetectionInput
 from models.retrieval import RetrievalOutput
-from fastapi import File, UploadFile
+
+from controllers.ai import ai_controller
+
 from assets.prompt_template_setup import *
 
 router = APIRouter(prefix="/ai", tags=["Ai"])
@@ -38,6 +36,16 @@ def read_root():
     return {"message": "Hello, FastAPI!"}
 
 
+@router.post("/chat")
+def chat(payload: MultimodalChatRequest):
+    """
+    Purpose: Endpoint for chatting with the AI model.
+    Input: MultimodalChatRequest
+    Output: MultimodalChatResponse with the user's and AI's response.
+    """
+    return ai_controller.append_and_process_chat(payload)
+
+
 @router.post("/object-detector")
 def object_detector(payload: ImagePayload):
     """
@@ -57,7 +65,8 @@ def object_detector(payload: ImagePayload):
     image = Image.open(BytesIO(image_data)).convert("RGB")
     # Object Detection
     with torch.no_grad():
-        inputs = Initializer.yolo_image_processor(images=[image], return_tensors="pt")
+        inputs = Initializer.yolo_image_processor(
+            images=[image], return_tensors="pt")
         outputs = Initializer.yolo_model(**inputs.to(Initializer.device))
         target_sizes = torch.tensor([[image.size[1], image.size[0]]])
         results = Initializer.yolo_image_processor.post_process_object_detection(
@@ -70,7 +79,8 @@ def object_detector(payload: ImagePayload):
             label = label.item()
             box = [i.item() for i in box]
             items["scores"].append(score)
-            items["labels"].append(Initializer.yolo_model.config.id2label[label])
+            items["labels"].append(
+                Initializer.yolo_model.config.id2label[label])
             items["bboxes"].append(box)
     # Return Output
     return items
@@ -112,7 +122,8 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
         images=cropped_objects, return_tensors="pt")
     for i in range(inputs['pixel_values'].size(0)):
         feature = inputs['pixel_values'][i].unsqueeze(0)
-        image_features = Initializer.clip_model.get_image_features(feature.to(Initializer.device))
+        image_features = Initializer.clip_model.get_image_features(
+            feature.to(Initializer.device))
         # Normalize the features
         image_features = image_features / \
             image_features.norm(p=2, dim=-1, keepdim=True)
