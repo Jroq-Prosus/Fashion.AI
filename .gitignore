@@ -73,3 +73,5 @@ dist/
 uploads/
 uploads/*
 knowledge_base/
+
+!.env.example
