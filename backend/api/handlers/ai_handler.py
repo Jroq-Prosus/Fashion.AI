@@ -18,6 +18,7 @@ from models.image import ImagePayload
 from models.detection import DetectionInput
 from models.retrieval import RetrievalOutput
 from assets.prompt_template_setup import prompt_template
+from fastapi import File, UploadFile
 
 router = APIRouter(prefix="/ai", tags=["Ai"])
 

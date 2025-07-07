@@ -1,0 +1,28 @@
+from fastapi import APIRouter, UploadFile, File, HTTPException, status
+from utils.standard_response import standard_response
+from controllers.voice_controller import handle_voice_to_text
+
+router = APIRouter()
+
+ALLOWED_AUDIO_TYPES = ["audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3"]
+MAX_AUDIO_SIZE = 5 * 1024 * 1024  # 5 MB
+
+@router.post("/voice-to-text", status_code=status.HTTP_200_OK)
+async def voice_to_text(file: UploadFile = File(...)):
+    # ✅ Validate file type
+    if file.content_type not in ALLOWED_AUDIO_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid audio file type")
+    
+    # ✅ Validate file size
+    contents = await file.read()
+    if len(contents) > MAX_AUDIO_SIZE:
+        raise HTTPException(status_code=413, detail="Audio file size exceeds 5 MB limit")
+
+    # ✅ Call controller for processing
+    result = handle_voice_to_text(contents)
+
+    return standard_response(
+        code=status.HTTP_200_OK,
+        message="Successfully converted voice to text",
+        data=result
+    )
