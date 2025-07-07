@@ -1,6 +1,7 @@
 from transformers import CLIPModel, CLIPProcessor
 from transformers import  YolosImageProcessor, YolosForObjectDetection
 from fastapi import Query
+from dotenv import load_dotenv
 from groq import Groq
 import numpy as np
 import faiss
@@ -8,6 +9,7 @@ import torch
 import json
 import torch
 import os
+load_dotenv()
 
 class Initializer:
     _instance = None
