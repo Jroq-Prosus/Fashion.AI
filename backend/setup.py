@@ -26,6 +26,7 @@ class Initializer:
         
         # INITIALIZE VALUES
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.max_selected_items_mllm = 5
         self.embed_dim = 768
         self.data_dir = "assets/image_database"
         self.index_path = f"{self.data_dir}/image.faiss"
