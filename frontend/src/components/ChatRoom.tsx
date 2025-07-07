@@ -1,6 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Camera, Mic, Loader2 } from 'lucide-react';
+import {
+  detectObjects,
+  imageRetrieval,
+  onlineSearchAgent,
+} from '../lib/fetcher';
 
 interface ChatMessage {
   id: string;
@@ -30,6 +34,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -41,7 +46,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
 
   const addMessage = (text: string, isUser: boolean, isTyping = false) => {
     const newMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       text,
       isUser,
       timestamp: new Date(),
@@ -57,44 +62,65 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     ));
   };
 
-  const simulateAIResponse = async (query: string) => {
+  // Modular AI workflow handler
+  const handleAIWorkflow = async (query: string, image?: string, voice?: boolean) => {
     setIsProcessing(true);
     const typingMessageId = addMessage('', false, true);
-
-    // Simulate thinking time
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const responses = [
-      `I've analyzed your request for "${query}" and found 4 stylish matches! Here are my top recommendations:\n\n1. Urban Minimalist Jacket - $89\n2. Classic Denim Blazer - $65\n3. Oversized Wool Coat - $120\n4. Vintage Leather Jacket - $95\n\nWould you like me to show details for any of these?`,
-      `Great choice! I found several "${query}" options that match current trends:\n\n1. Sustainable Cotton Blend - $45\n2. Premium Organic Material - $78\n3. Designer Collection Piece - $156\n4. Eco-Friendly Alternative - $52\n\nEach item comes with detailed material info and styling tips!`,
-      `Perfect! Based on your "${query}" search, I've curated these matches:\n\n1. Trending Style #1 - $67\n2. Classic Comfort Fit - $43\n3. Statement Piece - $89\n4. Versatile Daily Wear - $54\n\nI can also check nearby store availability if you'd like!`
-    ];
-
-    const response = responses[Math.floor(Math.random() * responses.length)];
-    updateMessage(typingMessageId, response);
+    let aiResponse = '';
+    try {
+      if (image) {
+        // 1. Detect objects
+        const detectionResult = await detectObjects(image);
+        if (!detectionResult || !detectionResult.bboxes || !detectionResult.labels) {
+          throw new Error('Object detection failed.');
+        }
+        const items = {
+          bboxes: detectionResult.bboxes,
+          labels: detectionResult.labels,
+          scores: detectionResult.scores || [],
+        };
+        // 2. Image retrieval
+        const retrievalResult = await imageRetrieval({
+          image_base64: image,
+          items,
+        });
+        console.log('retrievalResult', retrievalResult);
+        aiResponse = retrievalResult && retrievalResult.message
+          ? retrievalResult.message
+          : 'Image retrieval completed.';
+      } else if (query) {
+        // Text only: online search agent
+        const result = await onlineSearchAgent(query);
+        aiResponse = result && result.message ? result.message : 'Search completed.';
+      }
+    } catch (error: any) {
+      aiResponse = error.message || 'An error occurred.';
+    }
+    updateMessage(typingMessageId, aiResponse);
     setIsProcessing(false);
   };
 
   const handleSend = async () => {
-    if (!inputValue.trim()) return;
-
-    addMessage(inputValue, true);
+    if (!inputValue.trim() && !selectedImage) return;
+    if (inputValue.trim()) {
+      addMessage(inputValue, true);
+    }
+    if (selectedImage) {
+      addMessage('📷 Uploaded fashion image', true);
+    }
     const query = inputValue;
     setInputValue('');
-    
-    onSearch(query);
-    await simulateAIResponse(query);
+    await handleAIWorkflow(query, selectedImage || undefined);
+    setSelectedImage(null);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = async (e) => {
+      reader.onload = (e) => {
         const imageUrl = e.target?.result as string;
-        addMessage('📷 Uploaded fashion image', true);
-        onSearch('', imageUrl);
-        await simulateAIResponse('uploaded image analysis');
+        setSelectedImage(imageUrl);
       };
       reader.readAsDataURL(file);
     }
@@ -103,14 +129,16 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   const handleVoiceInput = async () => {
     setIsListening(true);
     addMessage('🎙️ Voice message recorded', true);
-    
     // Simulate voice processing
     setTimeout(async () => {
       setIsListening(false);
       const voiceQuery = 'stylish winter jacket for women';
-      onSearch(voiceQuery, undefined, true);
-      await simulateAIResponse(voiceQuery);
+      await handleAIWorkflow(voiceQuery, undefined, true);
     }, 2000);
+  };
+
+  const removeSelectedImage = () => {
+    setSelectedImage(null);
   };
 
   if (!isOpen) return null;
@@ -203,11 +231,17 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
+              {selectedImage && (
+                <div className="absolute left-0 top-full mt-2 flex items-center space-x-2 bg-gray-100 p-2 rounded-xl shadow-md">
+                  <img src={selectedImage} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
+                  <button onClick={removeSelectedImage} className="text-red-500 hover:underline text-xs">Remove</button>
+                </div>
+              )}
             </div>
             
             <button
               onClick={handleSend}
-              disabled={!inputValue.trim() || isProcessing}
+              disabled={(!inputValue.trim() && !selectedImage) || isProcessing}
               className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               <Send className="w-4 h-4" />

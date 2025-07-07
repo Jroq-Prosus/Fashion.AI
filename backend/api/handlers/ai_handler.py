@@ -20,6 +20,7 @@ from models.user import FashionAdvisorInput,UserQuery
 from fastapi import File, UploadFile
 from models.trend_geo import TrendGeoRequest
 from assets.prompt_template_setup import *
+import os
 
 router = APIRouter(prefix="/ai", tags=["Ai"])
 
@@ -130,9 +131,7 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
     """ Getting Image Paths and Scores """
     retrieved_image_paths = []
     scores = []
-    print(Initializer.image_paths)
     for index_, dist_ in zip(indexes, dists):
-        print(index_)
         for i in range(len(index_)):
             retrieved_image_paths.append(Initializer.image_paths[index_[i]])
             scores.append(round(dist_[i], 4))
@@ -218,28 +217,30 @@ def response_generation(
     # Get Extra Info
     i = 1
     for path in retrieval_result["retrieved_image_paths"]:
-        # Get Data extra info for the image
-        concept = Initializer.database['path_to_concept'].get(path)
-        if concept is None:
-            # Handle the error, e.g., return a 400 response or a default value
-            raise ValueError("Concept is None. Cannot look up name.")
-        if concept not in Initializer.database['concept_dict']:
-            # Handle missing concept
-            raise KeyError(f"Concept '{concept}' not found in concept_dict.")
+        # Query Supabase for the product with this image path
+        response = Initializer.database.table("products").select("*").eq("image", path).execute()
+        if not response.data or len(response.data) == 0:
+            raise ValueError(f"No product found for image path: {path}")
+        product = response.data[0]
         extra_info = f"{i}. Extra Info on this image reference that matched to the user's outfit (only look at this if you find helpful):\n"
-        for key in Initializer.database['concept_dict'][concept].keys():
-            extra_info += f"{key}: {Initializer.database['concept_dict'][concept][key]}"
+        for key, value in product.items():
+            extra_info += f"{key}: {value}\n"
         content.append({
             "type": "text",
             "text": f"{extra_info}"
         })
-        # Get Image Url accordingly
-        base64_image = compress_and_encode_image(path)
-        IMAGE_DATA_URL = f"data:image/jpeg;base64,{base64_image}"
+        # Generate a public URL for the image in Supabase Storage
+        # If path is already a public URL, use it directly; otherwise, construct it
+        if path.startswith("http://") or path.startswith("https://"):
+            image_url = path
+        else:
+            SUPABASE_URL = Initializer.database.url if hasattr(Initializer.database, 'url') else os.getenv("SUPABASE_URL")
+            SUPABASE_BUCKET = "product-images"
+            image_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{path}"
         content.append({
             "type": "image_url",
             "image_url": {
-                "url": IMAGE_DATA_URL
+                "url": image_url
             }
         })
         i += 1
