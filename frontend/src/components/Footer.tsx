@@ -28,7 +28,7 @@ const Footer = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-8">
           <div className="lg:col-span-2">
             <div className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
-              Fashionista AI
+              Fashion.AI
             </div>
             <p className="text-gray-400 mb-6 max-w-sm">
               Discover fashion with the power of AI. Search, explore, and shop with intelligent recommendations tailored just for you.
@@ -67,7 +67,7 @@ const Footer = () => {
             <div className="flex items-center space-x-6 text-sm text-gray-400">
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4" />
-                <span>hello@fashionista-ai.com</span>
+                <span>hello@fashion-ai.com</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
@@ -79,7 +79,7 @@ const Footer = () => {
               </div>
             </div>
             <div className="text-sm text-gray-400">
-              © 2024 Fashionista AI. All rights reserved.
+              © 2024 Fashion.AI. All rights reserved.
             </div>
           </div>
         </div>
