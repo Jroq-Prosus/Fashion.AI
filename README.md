@@ -1,3 +1,7 @@
+### Personal Repo for Deployment Purpose
+Since Vercel is free for personal account but not for organization account, the deployment is actually based on this repo:
+https://github.com/ShuhaoZQGG/Fashion.AI
+
 ### Introduction
 Fashion.AI, A fashion-focused AI-powered E-commerce platform using Bolt.new, structured into three clear modules: frontend, backend, and ai-model.
 
