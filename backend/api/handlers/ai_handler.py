@@ -1,5 +1,5 @@
 """ LOADING LIBRARIES """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import List
 from io import BytesIO
@@ -22,6 +22,7 @@ from models.trend_geo import TrendGeoRequest
 from assets.prompt_template_setup import *
 import os
 from utils.utils import translate_url
+from utils.jwt_util import *
 
 router = APIRouter(prefix="/ai", tags=["Ai"])
 
@@ -165,7 +166,8 @@ def image_retrieval(payload: DetectionInput, k: int = Query(5, description="Numb
 def response_generation(
     image: ImagePayload,
     data: RetrievalOutput,
-    user_query: str = Query(...)
+    user_query: str = Query(...),
+    user_id: str = Depends(get_user_id)
 ):
     """
     Purpose: Generates a natural language response as a fashion advisor, based on the user's image, retrieval results, and query.
@@ -275,6 +277,14 @@ def response_generation(
             "content": content
         }
     ]
+
+    session_data = {
+        "user_id": user_id, 
+        "query_text": user_query,
+        "image_path": query_image, 
+        "recommendations": list(retrieval_result)
+    }
+    Initializer.database.table("user_sessions").insert(session_data).execute()
 
     """ Generate Output """
     return {"response": groq_llama_completion(messages, token=1024)}
