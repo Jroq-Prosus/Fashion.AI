@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, status
+from models.user import User, UserProfile
 from controllers.users import user_controller
 from schemas.user_schema import ImageUploadResponse, StandardResponseWithImageUpload
 from fastapi.responses import JSONResponse
@@ -37,3 +38,19 @@ async def upload_image(user_id: str, file: UploadFile = File(...)):
         message="Image uploaded successfully",
         code=status.HTTP_201_CREATED
     )
+
+@router.get("/{user_id}/profile", response_model=UserProfile)
+def get_user_profile(user_id: str):
+    profile = user_controller.handle_get_user_profile(user_id)
+    if not profile:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="User profile not found")
+    return profile
+
+@router.get("/{email}/user", response_model=User)
+def get_user_by_email(email: str):
+    user = user_controller.handle_get_user_by_email(email)
+    if not user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="User not found")
+    return user

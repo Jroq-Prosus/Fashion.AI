@@ -1,7 +1,7 @@
 import os
 import uuid
 from db.supabase_client import supabase
-from models.user import UserImage
+from models.user import UserImage, UserProfile, User
 
 UPLOAD_DIR = "uploads"
 MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB
@@ -37,3 +37,17 @@ def save_image_metadata(user_id: str, filename: str) -> UserImage:
         filename=data["filename"],
         uploaded_at=data["uploaded_at"]
     )
+
+def get_user_by_email(email: str) -> User | None:
+    response = supabase.table("users").select("*").eq("email", email).single().execute()
+    data = response.data
+    if not data:
+        return None
+    return User(**data)
+
+def get_user_profile(user_id: str) -> UserProfile | None:
+    response = supabase.table("user_profile").select("*").eq("user_id", user_id).single().execute()
+    data = response.data
+    if not data:
+        return None
+    return UserProfile(**data)

@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 
 const LoginSignup: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<LoginFormInputs>();
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormInputs>();
   const { login, signup } = useAuth();
   const navigate = useNavigate();
 
@@ -31,8 +31,12 @@ const LoginSignup: React.FC = () => {
           title: 'Signup successful',
           description: 'Your account has been created. Please check your email to verify your account.',
         });
-        setMode('login');
-        reset();
+        await login(data.email, data.password);
+        toast({
+          title: 'Signup successful',
+          description: 'Your account has been created and you are now logged in.',
+        });
+        navigate('/');
       }
     } catch (err: any) {
       toast({
