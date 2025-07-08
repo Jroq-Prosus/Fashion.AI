@@ -1,4 +1,3 @@
-import os
 from db.supabase_client import supabase
 from function import groq_llama_completion
 from datetime import datetime
