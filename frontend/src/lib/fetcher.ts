@@ -69,6 +69,7 @@ export async function fetchTrendGeoStores(product_metadata: Product, user_style_
 }
 
 export async function voiceToText(file: File): Promise<VoiceToTextResponse> {
+  console.log('voiceToText', file);
   const formData = new FormData();
   formData.append('file', file);
   return fetcher('/voice-to-text', {

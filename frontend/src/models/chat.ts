@@ -43,7 +43,10 @@ export interface VoiceToTextResponse {
 }
 
 export interface VoiceToTextData {
-  transcript?: string;
+  transcript?: VoiceToTextTranscript;
+}
+
+export interface VoiceToTextTranscript {
   duration?: number;
   language?: string;
   segments?: any[]; // If segments is an array of objects, specify type if known

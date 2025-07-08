@@ -43,7 +43,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   const [nearbyButtonMessageId, setNearbyButtonMessageId] = useState<string | null>(null);
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [isTranscribing, setIsTranscribing] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,8 +55,14 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
 
   useEffect(() => {
     if (!mediaRecorder) return;
-    if (isListening) setAudioChunks([]);
-  }, [mediaRecorder, isListening]);
+  }, [mediaRecorder]);
+
+  useEffect(() => {
+    if (recordedAudio) {
+      handleProcessAudio();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordedAudio]);
 
   const addMessage = (text: string, isUser: boolean, isTyping = false, options?: any) => {
     const newMessage: ChatMessage = {
@@ -77,7 +83,8 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     ));
   };
 
-  const handleAIWorkflow = async (query: string, image?: string, voice?: boolean) => {
+  // Modular handler for all input combinations
+  const processUserInput = async ({ text, image, source }: { text?: string; image?: string; source: 'text' | 'voice' }) => {
     setIsProcessing(true);
     const typingMessageId = addMessage('', false, true);
     let aiResponse = '';
@@ -85,7 +92,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     let firstProduct: any = null;
     try {
       if (image) {
-        // 1. Detect objects
+        // 1. Detect objects and image retrieval
         const detectionResult = await detectObjects(image);
         if (!detectionResult || !detectionResult.bboxes || !detectionResult.labels) {
           throw new Error('Object detection failed.');
@@ -95,13 +102,11 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
           labels: detectionResult.labels,
           scores: detectionResult.scores || [],
         };
-        // 2. Image retrieval
         const retrievalResult: RetrievalResult = await imageRetrieval({
           image_base64: image,
           items,
         });
-
-        // 3. Generate fashion advisor response
+        // If products found, set up preview and nearby
         if (
           retrievalResult.products &&
           retrievalResult.products.length > 0 &&
@@ -117,53 +122,40 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
             description: firstProduct.description,
           };
           setLastProductForNearby(firstProduct);
-          setLastUserQuery(query || '');
+          setLastUserQuery(text || '');
           setTimeout(() => {
             setShowNearbyButton(true);
           }, 500);
         }
+        // 2. Generate fashion advisor response (with image)
         const advisorResponse = await generateFashionAdvisorResponse(
           image,
           retrievalResult,
-          query || ''
+          text || ''
         );
-        console.log('advisorResponse', advisorResponse);
         aiResponse = advisorResponse && advisorResponse.response
           ? advisorResponse.response
           : 'AI response generated.';
         updateMessage(typingMessageId, aiResponse, { productPreview });
         if (productPreview) {
           setLastProductForNearby(firstProduct);
-          setLastUserQuery(query || '');
+          setLastUserQuery(text || '');
           setTimeout(() => {
             setShowNearbyButton(true);
           }, 500);
         }
-
-        // --- Add: Make another API call after advisorResponse ---
-        /** Comment out for now as this is kinda duplicate of generateFashionAdvisorResponse
-        * try {
-        *   const followupData = await fashionAdvisorVisual(image, query || '');
-        *   let followupMsg = '';
-        *   if (followupData?.response && typeof followupData.response === 'string' && followupData.response.trim()) {
-        *     followupMsg = followupData.response;
-        *   } else if (typeof followupData === 'object' && Object.keys(followupData).length > 0) {
-        *     followupMsg = 'AI (follow-up) response:\n' + JSON.stringify(followupData, null, 2);
-        *   } else {
-        *     followupMsg = 'AI (follow-up) did not return a readable response.';
-        *   }
-        *   addMessage(followupMsg, false);
-        * } catch (followupErr: any) {
-        *   addMessage('Follow-up AI response failed. Please try again later.', false);
-        * }
-        // --- End add ---
-        */
-      } else if (query) {
-        // Text only: online search agent
-        const result: TrendGeoRes = await onlineSearchAgent(query);
-        console.log('onlineSearchAgent result', result);
-        aiResponse = result && result.stores && result.stores.length > 0 ? 'Search completed.' : 'No results found.';
+      } else if (text) {
+        // Only text or voice: generateFashionAdvisorResponse
+        const advisorResponse = await generateFashionAdvisorResponse(
+          undefined,
+          undefined,
+          text
+        );
+        aiResponse = advisorResponse && advisorResponse.response
+          ? advisorResponse.response
+          : 'AI response generated.';
         updateMessage(typingMessageId, aiResponse, { productPreview });
+        // No product preview, but still allow nearby search if needed (optional)
       }
     } catch (error: any) {
       aiResponse = error.message || 'An error occurred.';
@@ -172,6 +164,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     setIsProcessing(false);
   };
 
+  // Refactored handleSend to use processUserInput
   const handleSend = async () => {
     if (!inputValue.trim() && !selectedImage) return;
     if (inputValue.trim()) {
@@ -180,76 +173,30 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     if (selectedImage) {
       addMessage('📷 Uploaded fashion image', true);
     }
-    const query = inputValue;
+    const text = inputValue;
     setInputValue('');
-    await handleAIWorkflow(query, selectedImage || undefined);
+    await processUserInput({ text, image: selectedImage || undefined, source: 'text' });
     setSelectedImage(null);
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        setSelectedImage(imageUrl);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleVoiceInput = async () => {
-    if (isListening) {
-      mediaRecorder?.stop();
-      setIsListening(false);
-      return;
-    }
-    if (!navigator.mediaDevices || !window.MediaRecorder) {
-      alert('Audio recording is not supported in this browser.');
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      setMediaRecorder(recorder);
-      setAudioChunks([]);
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          setAudioChunks((prev) => [...prev, e.data]);
-        }
-      };
-      recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        setRecordedAudio(audioBlob);
-        stream.getTracks().forEach((track) => track.stop());
-      };
-      recorder.start();
-      setIsListening(true);
-    } catch (err) {
-      alert('Could not start audio recording.');
-    }
-  };
-
-  const handleSendAudio = async () => {
+  // Refactored handleProcessAudio to only transcribe and set inputValue
+  const handleProcessAudio = async () => {
     if (!recordedAudio) return;
-    setIsProcessing(true);
-    addMessage('🎙️ Voice message recorded', true);
+    setIsTranscribing(true);
     try {
       const file = new File([recordedAudio], 'voice.webm', { type: 'audio/webm' });
       const res: VoiceToTextResponse = await voiceToText(file);
-      const text = typeof res.data.transcript === 'string' ? res.data.transcript : (typeof res.message === 'string' ? res.message : '');
+      const text = typeof res.data.transcript.text === 'string' ? res.data.transcript.text : (typeof res.message === 'string' ? res.message : '');
       if (text) {
-        setInputValue(text);
-        await handleAIWorkflow(text, undefined, true);
+        setInputValue(text); // Show transcript in input for editing
       } else {
         addMessage('Could not transcribe audio.', false);
       }
     } catch (err: any) {
-      console.log('handleSendAudio error', err);
       addMessage('Voice-to-text failed. Please try again.', false);
     }
     setRecordedAudio(null);
-    setIsProcessing(false);
+    setIsTranscribing(false);
   };
 
   const handleDiscardAudio = () => {
@@ -278,7 +225,6 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
         const user_location = `${position.coords.latitude},${position.coords.longitude}`;
         try {
           const trendGeoRes: TrendGeoRes = await fetchTrendGeoStores(product, userQuery, user_location);
-          console.log('trendGeoRes', trendGeoRes);
           if (trendGeoRes && Array.isArray(trendGeoRes.stores) && trendGeoRes.stores.length > 0) {
             addMessage('', false, false, {
               type: 'store-maps',
@@ -453,7 +399,17 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              onChange={handleImageUpload}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (e) => {
+                    const imageUrl = e.target?.result as string;
+                    setSelectedImage(imageUrl);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
               className="hidden"
             />
             
@@ -466,7 +422,41 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
             </button>
             
             <button
-              onClick={handleVoiceInput}
+              onClick={() => {
+                if (isListening) {
+                  mediaRecorder?.stop();
+                  setIsListening(false);
+                  // When recording stops, transcribe
+                  handleProcessAudio();
+                } else {
+                  if (!navigator.mediaDevices || !window.MediaRecorder) {
+                    alert('Audio recording is not supported in this browser.');
+                  } else {
+                    navigator.mediaDevices.getUserMedia({ audio: true })
+                      .then(stream => {
+                        const recorder = new MediaRecorder(stream);
+                        let localAudioChunks: Blob[] = [];
+                        recorder.ondataavailable = (e) => {
+                          if (e.data.size > 0) {
+                            localAudioChunks.push(e.data);
+                          }
+                        };
+                        recorder.onstop = () => {
+                          const audioBlob = new Blob(localAudioChunks, { type: 'audio/webm' });
+                          setRecordedAudio(audioBlob);
+                          stream.getTracks().forEach((track) => track.stop());
+                        };
+                        recorder.start();
+                        setMediaRecorder(recorder);
+                        setIsListening(true);
+                      })
+                      .catch(err => {
+                        console.error('Error accessing microphone:', err);
+                        alert('Could not access microphone. Please check browser permissions.');
+                      });
+                  }
+                }
+              }}
               className={`p-3 rounded-xl transition-colors ${
                 isListening 
                   ? 'bg-red-100 animate-pulse' 
@@ -477,40 +467,35 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
             >
               <Mic className={`w-5 h-5 ${isListening ? 'text-red-600' : 'text-blue-600'}`} />
             </button>
-            {recordedAudio && (
+            {isTranscribing && recordedAudio && (
               <div className="flex items-center space-x-2 bg-gray-100 p-2 rounded-xl shadow-md">
                 <audio controls src={URL.createObjectURL(recordedAudio)} />
-                <button
-                  onClick={handleSendAudio}
-                  className="px-3 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-xs font-semibold hover:shadow-md transition-all duration-200"
-                  disabled={isProcessing}
-                >
-                  Send
-                </button>
-                <button
-                  onClick={handleDiscardAudio}
-                  className="text-red-500 hover:underline text-xs"
-                  disabled={isProcessing}
-                >
-                  Discard
-                </button>
+                <span className="text-sm text-gray-600">Transcribing...</span>
               </div>
             )}
             
             <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Describe what you're looking for..."
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-              {selectedImage && (
-                <div className="absolute left-0 top-full mt-2 flex items-center space-x-2 bg-gray-100 p-2 rounded-xl shadow-md">
-                  <img src={selectedImage} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
-                  <button onClick={removeSelectedImage} className="text-red-500 hover:underline text-xs">Remove</button>
+              {isListening ? (
+                <div className="w-full px-4 py-3 rounded-xl border border-blue-400 bg-blue-50 text-blue-700 flex items-center justify-center font-semibold animate-pulse">
+                  <Mic className="w-5 h-5 mr-2 text-blue-600" /> Listening...
                 </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Describe what you're looking for..."
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  {selectedImage && (
+                    <div className="absolute left-0 top-full mt-2 flex items-center space-x-2 bg-gray-100 p-2 rounded-xl shadow-md">
+                      <img src={selectedImage} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
+                      <button onClick={removeSelectedImage} className="text-red-500 hover:underline text-xs">Remove</button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
             
