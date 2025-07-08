@@ -1,8 +1,13 @@
 import os
+from apscheduler.schedulers.background import BackgroundScheduler
 from db.supabase_client import supabase
 from function import groq_llama_completion
 from datetime import datetime
 import pytz
+import time
+
+# How often to run the job (in seconds)
+JOB_INTERVAL_SECONDS = 3600  # 1 hour
 
 def summarize_user_sessions(sessions):
     # Prepare a summary prompt for the AI
@@ -40,5 +45,17 @@ def update_user_profiles():
         supabase.table("user_profile").update({"description": summary, "updated_at": now}).eq("user_id", user_id).execute()
         print(f"[UserProfileJob] Updated profile for user_id={user_id}")
 
+def start_scheduler():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(update_user_profiles, 'interval', seconds=JOB_INTERVAL_SECONDS)
+    scheduler.start()
+    print("[UserProfileJob] Scheduler started.")
+    # Keep the script running
+    try:
+        while True:
+            time.sleep(60)
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()
+
 if __name__ == "__main__":
-    update_user_profiles() 
+    start_scheduler() 
