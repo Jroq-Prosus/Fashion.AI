@@ -4,11 +4,18 @@ from controllers.ai.voice_controller import handle_voice_to_text
 
 router = APIRouter()
 
-ALLOWED_AUDIO_TYPES = ["audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3", "video/mp4"]
+ALLOWED_AUDIO_TYPES = ["audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3", "video/mp4", "audio/webm"]
 MAX_AUDIO_SIZE = 25 * 1024 * 1024  # 25 MB
 
 @router.post("/voice-to-text", status_code=status.HTTP_200_OK)
 async def voice_to_text(file: UploadFile = File(...)):
+    print('file', file)
+    print('file.content_type', file.content_type)
+    print('file.filename', file.filename)
+    print('file.size', file.size)
+    print('file.content_type', file.content_type)
+    print('file.content_type', file.content_type)
+    print('--------------------------------\n')
     if file.content_type not in ALLOWED_AUDIO_TYPES:
         raise HTTPException(status_code=400, detail="Invalid audio file type")
     

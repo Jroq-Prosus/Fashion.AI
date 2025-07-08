@@ -20,6 +20,8 @@ from models.user import FashionAdvisorInput,UserQuery
 from fastapi import File, UploadFile
 from models.trend_geo import TrendGeoRequest
 from assets.prompt_template_setup import *
+import os
+from utils.utils import translate_url
 
 router = APIRouter(prefix="/ai", tags=["Ai"])
 
@@ -80,7 +82,7 @@ def object_detector(payload: ImagePayload):
 
 
 @router.post("/image-retrieval")
-def image_retrieval(payload: DetectionInput, k: int = Query(...)):
+def image_retrieval(payload: DetectionInput, k: int = Query(5, description="Number of results per object")):
     """
     Purpose: Retrieves similar images from a vector database for each detected object in the input image.
     Input: JSON body with base64-encoded image and detected items (DetectionInput), query parameter k (number of results per object).
@@ -130,18 +132,32 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
     """ Getting Image Paths and Scores """
     retrieved_image_paths = []
     scores = []
-    print(Initializer.image_paths)
     for index_, dist_ in zip(indexes, dists):
-        print(index_)
         for i in range(len(index_)):
             retrieved_image_paths.append(Initializer.image_paths[index_[i]])
             scores.append(round(dist_[i], 4))
+
+    # Truncate each list to the first k elements
+    retrieved_image_paths = retrieved_image_paths[:k]
+    detected_labels = detected_labels[:k]
+    scores = scores[:k]
+
+    # Retrieve product metadata for each image path
+    products = []
+    for path in retrieved_image_paths:
+        db_path = translate_url(path)
+        response = Initializer.database.table("products").select("*").eq("image", db_path).execute()
+        if response.data and len(response.data) > 0:
+            products.append(response.data[0])
+        else:
+            products.append(None)  # or skip, depending on requirements
 
     """ Return Output """
     return {
         "retrieved_image_paths": retrieved_image_paths,
         "detected_labels": detected_labels,
-        "similarity_scores": scores
+        "similarity_scores": scores,
+        "products": products
     }
 
 
@@ -165,6 +181,8 @@ def response_generation(
     query_image = image.image_base64
 
     """ Preprocess the Retrieval Output """
+    # Step 0: Replace spaces in image paths with %20 and trailing backslash with double backslash
+
     # Step 1: Combine all data
     combined = list(zip(
         data.retrieved_image_paths,
@@ -208,7 +226,7 @@ def response_generation(
         "text": f"This is the user photo in his/her style wearing an outfit."
     })
     # Get Image Url accordingly
-    IMAGE_DATA_URL = f"data:image/jpeg;base64,{query_image}"
+    IMAGE_DATA_URL = query_image
     content.append({
         "type": "image_url",
         "image_url": {
@@ -218,28 +236,31 @@ def response_generation(
     # Get Extra Info
     i = 1
     for path in retrieval_result["retrieved_image_paths"]:
-        # Get Data extra info for the image
-        concept = Initializer.database['path_to_concept'].get(path)
-        if concept is None:
-            # Handle the error, e.g., return a 400 response or a default value
-            raise ValueError("Concept is None. Cannot look up name.")
-        if concept not in Initializer.database['concept_dict']:
-            # Handle missing concept
-            raise KeyError(f"Concept '{concept}' not found in concept_dict.")
+        # Query Supabase for the product with this image path
+        path = translate_url(path)
+        response = Initializer.database.table("products").select("*").eq("image", path).execute()
+        if not response.data or len(response.data) == 0:
+            raise ValueError(f"No product found for image path: {path}")
+        product = response.data[0]
         extra_info = f"{i}. Extra Info on this image reference that matched to the user's outfit (only look at this if you find helpful):\n"
-        for key in Initializer.database['concept_dict'][concept].keys():
-            extra_info += f"{key}: {Initializer.database['concept_dict'][concept][key]}"
+        for key, value in product.items():
+            extra_info += f"{key}: {value}\n"
         content.append({
             "type": "text",
             "text": f"{extra_info}"
         })
-        # Get Image Url accordingly
-        base64_image = compress_and_encode_image(path)
-        IMAGE_DATA_URL = f"data:image/jpeg;base64,{base64_image}"
+        # Generate a public URL for the image in Supabase Storage
+        # If path is already a public URL, use it directly; otherwise, construct it
+        if path.startswith("http://") or path.startswith("https://"):
+            image_url = path
+        else:
+            SUPABASE_URL = Initializer.database.url if hasattr(Initializer.database, 'url') else os.getenv("SUPABASE_URL")
+            SUPABASE_BUCKET = "product-images"
+            image_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{path}"
         content.append({
             "type": "image_url",
             "image_url": {
-                "url": IMAGE_DATA_URL
+                "url": image_url
             }
         })
         i += 1

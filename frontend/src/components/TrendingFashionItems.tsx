@@ -1,18 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { fetcher } from '../lib/fetcher';
 
 const PAGE_SIZE = 6;
-const API_URL = '/products/all?page=1'; // Adjust if backend is on a different origin
-
 const PLACEHOLDER_IMAGE = '/placeholder.png'; // You can provide a real placeholder image in public/
-
-const fetchTrendingItems = async () => {
-  const data = await fetcher(API_URL);
-  // The data is expected to be in data.data (StandardResponseWithMetadata)
-  return data.data;
-};
 
 const getCategoryStyle = (category: string | null | undefined) => {
   switch (category) {
@@ -29,11 +21,36 @@ const getCategoryStyle = (category: string | null | undefined) => {
   }
 };
 
+const fetchTrendingItems = async (page: number) => {
+  const API_URL = `/products/all?page=${page}`;
+  const data = await fetcher(API_URL);
+  return data.data;
+};
+
 const TrendingFashionItems = () => {
-  const { data: trendingItems, isLoading, isError } = useQuery({
-    queryKey: ['trending-fashion-items'],
-    queryFn: fetchTrendingItems,
+  const [page, setPage] = useState(1);
+  const [allItems, setAllItems] = useState<any[]>([]);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['trending-fashion-items', page],
+    queryFn: () => fetchTrendingItems(page),
   });
+
+  React.useEffect(() => {
+    if (data) {
+      if (page === 1) {
+        setAllItems(data || []);
+      } else if (Array.isArray(data) && data.length > 0) {
+        setAllItems((prev) => [...prev, ...data]);
+      }
+      setIsFetchingMore(false);
+    }
+  }, [data, page]);
+
+  const handleViewMore = () => {
+    setIsFetchingMore(true);
+    setPage((prev) => prev + 1);
+  };
 
   return (
     <section className="py-16 px-4 bg-gradient-to-br from-purple-50/50 via-white to-blue-50/50">
@@ -46,15 +63,14 @@ const TrendingFashionItems = () => {
             Discover what's popular right now and stay ahead of the fashion curve
           </p>
         </div>
-        {isLoading && (
+        {isLoading && page === 1 && (
           <div className="text-center text-lg text-gray-500 py-12">Loading trending items...</div>
         )}
         {isError && (
           <div className="text-center text-lg text-red-500 py-12">Failed to load trending items.</div>
         )}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {trendingItems && trendingItems.map((item: any) => {
-            // Defensive mapping for backend structure
+          {allItems.map((item: any) => {
             const {
               id,
               name,
@@ -67,21 +83,19 @@ const TrendingFashionItems = () => {
               image,
               reviews,
             } = item;
-            // Calculate rating and review count if reviews exist
             let rating = 0;
             let reviewCount = 0;
             if (Array.isArray(reviews) && reviews.length > 0) {
               rating = reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length;
               reviewCount = reviews.length;
             }
-            // Fallbacks
             const displayImage = image || PLACEHOLDER_IMAGE;
             const displayCategory = category || 'Uncategorized';
             const displayName = name || 'Unnamed Product';
             const displayDescription = description || '';
             const displayBrand = brand || '';
             const displayMaterial = material_info || '';
-            const isNew = false; // You can set logic for new items if needed
+            const isNew = false;
             return (
               <div key={id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group hover:border-purple-200">
                 <div className="relative overflow-hidden">
@@ -143,8 +157,12 @@ const TrendingFashionItems = () => {
           })}
         </div>
         <div className="text-center mt-12">
-          <button className="bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl">
-            View All Trending Items
+          <button
+            className="bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50"
+            onClick={handleViewMore}
+            disabled={isFetchingMore || (data && data.length < PAGE_SIZE)}
+          >
+            {isFetchingMore ? 'Loading...' : 'View More Trending Items'}
           </button>
         </div>
       </div>

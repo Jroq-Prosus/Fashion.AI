@@ -15,7 +15,6 @@ async def get_lat_lon_async(address: str, timeout: float = 60.0) -> Optional[Tup
     Async: Given an address, return (latitude, longitude) using the Google Geo API agent.
     Returns None if not found or error.
     """
-    print('get_lat_lon query', address)
     response = await send_sync_message(
         destination=GOOGLE_GEO_AGENT_ADDRESS,
         message=GeolocationRequest(address=address),
@@ -37,12 +36,16 @@ async def get_lat_lon_async(address: str, timeout: float = 60.0) -> Optional[Tup
     if isinstance(data, dict):
         lat = data.get("latitude")
         lon = data.get("longitude")
+        print('get_lat_lon', lat, lon)
+        print("--------------------------------\n")
         if isinstance(lat, (float, int)) and isinstance(lon, (float, int)):
             return float(lat), float(lon)
         if "error" in data:
             print(f"Geo agent error: {data['error']}")
+            print("--------------------------------\n")
             return None
         print(f"Geo agent unexpected response dict: {data}")
+        print("--------------------------------\n")
         return None
 
     print(f"Geo agent response not understood: {response}")
