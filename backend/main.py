@@ -4,7 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from postgrest.exceptions import APIError
 from dotenv import load_dotenv
-from api.handlers import product_handler, ai_handler, user_handler, voice_handler as voi, ai_trend_geo_handler
+from api.handlers import product_handler, ai_handler, user_handler, voice_handler as voi, ai_trend_geo_handler, auth_handler
 from utils.response import standard_response
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -32,6 +32,7 @@ app.include_router(user_handler.router)
 app.include_router(ai_handler.router)
 app.include_router(voi.router)
 app.include_router(ai_trend_geo_handler.router)
+app.include_router(auth_handler.router)
 
 # -------------------------------
 # 🌟 Global Exception Handlers
