@@ -8,6 +8,7 @@ import {
   fashionAdvisorVisual,
   fetchTrendGeoStores,
   voiceToText,
+  fashionAdvisorTextOnly,
 } from '../lib/fetcher';
 import { ChatMessage, RetrievalResult, VoiceToTextResponse } from '@/models/chat';
 import { ProductPreview } from '@/models/product';
@@ -88,78 +89,50 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     setIsProcessing(true);
     const typingMessageId = addMessage('', false, true);
     let aiResponse = '';
-    let productPreview: ProductPreview | undefined = undefined;
-    let firstProduct: any = null;
+    let productPreviews: ProductPreview[] | undefined = undefined;
     try {
       if (image) {
-        // 1. Detect objects and image retrieval
-        const detectionResult = await detectObjects(image);
-        if (!detectionResult || !detectionResult.bboxes || !detectionResult.labels) {
-          throw new Error('Object detection failed.');
-        }
-        const items = {
-          bboxes: detectionResult.bboxes,
-          labels: detectionResult.labels,
-          scores: detectionResult.scores || [],
-        };
-        const retrievalResult: RetrievalResult = await imageRetrieval({
-          image_base64: image,
-          items,
-        });
-        // If products found, set up preview and nearby
-        if (
-          retrievalResult.products &&
-          retrievalResult.products.length > 0 &&
-          retrievalResult.retrieved_image_paths &&
-          retrievalResult.retrieved_image_paths.length > 0
-        ) {
-          firstProduct = retrievalResult.products[0];
-          const firstImage = retrievalResult.retrieved_image_paths[0];
-          productPreview = {
-            id: firstProduct.id,
-            image: firstImage,
-            name: firstProduct.name,
-            description: firstProduct.description,
-          };
-          setLastProductForNearby(firstProduct);
-          setLastUserQuery(text || '');
-          setTimeout(() => {
-            setShowNearbyButton(true);
-          }, 500);
-        }
         // 2. Generate fashion advisor response (with image)
-        const advisorResponse = await generateFashionAdvisorResponse(
+        const advisorResponse = await fashionAdvisorVisual(
           image,
-          retrievalResult,
           text || ''
         );
+        console.log('advisorResponse', advisorResponse);
         aiResponse = advisorResponse && advisorResponse.response
           ? advisorResponse.response
           : 'AI response generated.';
-        updateMessage(typingMessageId, aiResponse, { productPreview });
-        if (productPreview) {
-          setLastProductForNearby(firstProduct);
+        productPreviews = advisorResponse && advisorResponse.products && advisorResponse.products.length > 0 ? advisorResponse.products.map((prod: any) => ({
+          id: prod.id,
+          image: prod.image,
+          name: prod.name,
+          description: prod.description,
+        })) : undefined;
+        updateMessage(typingMessageId, aiResponse, { productPreviews });
+        if (productPreviews && productPreviews.length > 0) {
+          setLastProductForNearby(productPreviews[0]);
           setLastUserQuery(text || '');
           setTimeout(() => {
             setShowNearbyButton(true);
           }, 500);
         }
       } else if (text) {
-        // Only text or voice: generateFashionAdvisorResponse
-        const advisorResponse = await generateFashionAdvisorResponse(
-          undefined,
-          undefined,
-          text
-        );
+        // Only text or voice: use fashionAdvisorTextOnly
+        const advisorResponse = await fashionAdvisorTextOnly(text);
         aiResponse = advisorResponse && advisorResponse.response
           ? advisorResponse.response
           : 'AI response generated.';
-        updateMessage(typingMessageId, aiResponse, { productPreview });
-        // No product preview, but still allow nearby search if needed (optional)
+        productPreviews = advisorResponse && advisorResponse.products && advisorResponse.products.length > 0 ? advisorResponse.products.map((prod: any) => ({
+          id: prod.id,
+          image: prod.image,
+          name: prod.name,
+          description: prod.description,
+        })) : undefined;
+        updateMessage(typingMessageId, aiResponse, { productPreviews });
+        // Optionally, you can use advisorResponse.products for future product display
       }
     } catch (error: any) {
       aiResponse = error.message || 'An error occurred.';
-      updateMessage(typingMessageId, aiResponse, { productPreview });
+      updateMessage(typingMessageId, aiResponse, { productPreviews });
     }
     setIsProcessing(false);
   };
@@ -295,34 +268,38 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
                 ) : (
                   <>
                     <p className="whitespace-pre-line">{message.text}</p>
-                    {message.productPreview && (
-                      <div className="mt-4 flex items-center space-x-4 bg-white rounded-xl shadow p-3 border border-gray-200">
-                        <img
-                          src={message.productPreview.image}
-                          alt={message.productPreview.name}
-                          className="w-20 h-20 object-cover rounded-lg border"
-                        />
-                        <div>
-                          <div className="font-semibold text-base text-gray-800">{message.productPreview.name}</div>
-                          <div className="text-sm text-gray-600 mt-1">{message.productPreview.description}</div>
-                          <div className="flex space-x-2 mt-2">
-                            {message.productPreview.id && (
-                              <button
-                                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-semibold hover:shadow-md transition-all duration-200"
-                                onClick={() => navigate(`/product/${message.productPreview.id}`)}
-                              >
-                                Visit
-                              </button>
-                            )}
-                            <button
-                              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 text-sm font-medium shadow-md hover:shadow-lg"
-                              onClick={() => handleAddToCart(message.productPreview)}
-                            >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4" /><circle cx="7" cy="21" r="1" /><circle cx="20" cy="21" r="1" /></svg>
-                              <span>Add to Cart</span>
-                            </button>
+                    {message.productPreviews && message.productPreviews.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-4">
+                        {message.productPreviews.map((preview, idx) => (
+                          <div key={idx} className="flex items-center space-x-4 bg-white rounded-xl shadow p-3 border border-gray-200">
+                            <img
+                              src={preview.image}
+                              alt={preview.name}
+                              className="w-20 h-20 object-cover rounded-lg border"
+                            />
+                            <div>
+                              <div className="font-semibold text-base text-gray-800">{preview.name}</div>
+                              <div className="text-sm text-gray-600 mt-1">{preview.description}</div>
+                              <div className="flex space-x-2 mt-2">
+                                {preview.id && (
+                                  <button
+                                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-semibold hover:shadow-md transition-all duration-200"
+                                    onClick={() => navigate(`/product/${preview.id}`)}
+                                  >
+                                    Visit
+                                  </button>
+                                )}
+                                <button
+                                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 text-sm font-medium shadow-md hover:shadow-lg"
+                                  onClick={() => handleAddToCart(preview)}
+                                >
+                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4" /><circle cx="7" cy="21" r="1" /><circle cx="20" cy="21" r="1" /></svg>
+                                  <span>Add to Cart</span>
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
                     )}
                     {message.isThinking && (
