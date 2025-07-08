@@ -342,56 +342,6 @@ def get_user_id(authorization: str = Header(None)) -> str | None:
     except JWTError:
         return None
 
-@router.post("/fashion-advisor-text-only")
-def fashion_advisor_text_only(
-    user_query: str = Query(..., description="The user's fashion-related query"),
-    k: int = Query(3, description="Number of top products to return"),
-    user_id: str = Depends(get_user_id)
-):
-    """
-    Purpose: Handles text-only fashion advisor queries by retrieving top-k matching products
-    and generating a natural language response.
-    """
-    # Step 1: Retrieve Top-K Products Based on User Query
-    # For simplicity, let's assume we fetch random k products (you can enhance with actual search later)
-    response = Initializer.database.table("products").select("*").limit(k).execute()
-    if not response.data or len(response.data) == 0:
-        raise HTTPException(status_code=404, detail="No products found for recommendations")
-
-    top_products = response.data
-
-    # Step 2: Build AI Prompt
-    content = [
-        {"type": "text", "text": f"USER's QUERY: {user_query}"},
-        {"type": "text", "text": "Here are some recommended products:"}
-    ]
-    for idx, product in enumerate(top_products, start=1):
-        product_info = (
-            f"{idx}. Name: {product['name']}\n"
-            f"   Brand: {product['brand']}\n"
-            f"   Category: {product['category']}\n"
-            f"   Description: {product['description']}"
-        )
-        content.append({"type": "text", "text": product_info})
-
-    messages = [
-        {"role": "system", "content": system_instruction_outfit_advisor},
-        {"role": "user", "content": content}
-    ]
-
-    ai_response = groq_llama_completion(messages, token=1024)
-
-    # Step 3: Track User Session
-    session_data = {
-        "user_id": user_id,  # NULL if anonymous
-        "query_text": user_query,
-        "image_path": None,
-        "recommendations": [p['image'] for p in top_products]
-    }
-    Initializer.database.table("user_sessions").insert(session_data).execute()
-
-    return {"response": ai_response}
-
 @router.post("/online-search-agent")
 async def online_agent(payload: UserQuery):
     # Simplify Query
