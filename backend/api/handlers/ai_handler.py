@@ -1,5 +1,5 @@
 """ LOADING LIBRARIES """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List
 from io import BytesIO
@@ -290,7 +290,10 @@ def response_generation(
     return {"response": groq_llama_completion(messages, token=1024)}
 
 @router.post("/fashion-advisor-visual")
-def full_fashion_advisor(payload: FashionAdvisorInput):
+def full_fashion_advisor(
+    payload: FashionAdvisorInput,
+    user_id: str = Depends(get_user_id)  # Inject user_id from token
+):
     """
     Purpose: A full pipeline endpoint that performs object detection,
     image retrieval, and fashion response generation in a single call.
@@ -312,12 +315,82 @@ def full_fashion_advisor(payload: FashionAdvisorInput):
     # Step 3: Response Generation
     image_payload = ImagePayload(image_base64=payload.image_base64)
     retrieval_output = RetrievalOutput(**retrieval_result)
-
-    return response_generation(
+    advisor_response = response_generation(
         image=image_payload,
         data=retrieval_output,
         user_query=payload.user_query
     )
+
+    # ======= EMBED SESSION TRACKING =======
+    session_data = {
+        "user_id": user_id,  # NULL if anonymous
+        "query_text": payload.user_query,
+        "image_path": payload.image_base64,  # optionally upload to Supabase Storage
+        "recommendations": retrieval_result["retrieved_image_paths"]
+    }
+    Initializer.database.table("user_sessions").insert(session_data).execute()
+
+    return advisor_response
+
+def get_user_id(authorization: str = Header(None)) -> str | None:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization.split("Bearer ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+@router.post("/fashion-advisor-text-only")
+def fashion_advisor_text_only(
+    user_query: str = Query(..., description="The user's fashion-related query"),
+    k: int = Query(3, description="Number of top products to return"),
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Purpose: Handles text-only fashion advisor queries by retrieving top-k matching products
+    and generating a natural language response.
+    """
+    # Step 1: Retrieve Top-K Products Based on User Query
+    # For simplicity, let's assume we fetch random k products (you can enhance with actual search later)
+    response = Initializer.database.table("products").select("*").limit(k).execute()
+    if not response.data or len(response.data) == 0:
+        raise HTTPException(status_code=404, detail="No products found for recommendations")
+
+    top_products = response.data
+
+    # Step 2: Build AI Prompt
+    content = [
+        {"type": "text", "text": f"USER's QUERY: {user_query}"},
+        {"type": "text", "text": "Here are some recommended products:"}
+    ]
+    for idx, product in enumerate(top_products, start=1):
+        product_info = (
+            f"{idx}. Name: {product['name']}\n"
+            f"   Brand: {product['brand']}\n"
+            f"   Category: {product['category']}\n"
+            f"   Description: {product['description']}"
+        )
+        content.append({"type": "text", "text": product_info})
+
+    messages = [
+        {"role": "system", "content": system_instruction_outfit_advisor},
+        {"role": "user", "content": content}
+    ]
+
+    ai_response = groq_llama_completion(messages, token=1024)
+
+    # Step 3: Track User Session
+    session_data = {
+        "user_id": user_id,  # NULL if anonymous
+        "query_text": user_query,
+        "image_path": None,
+        "recommendations": [p['image'] for p in top_products]
+    }
+    Initializer.database.table("user_sessions").insert(session_data).execute()
+
+    return {"response": ai_response}
 
 @router.post("/online-search-agent")
 async def online_agent(payload: UserQuery):
