@@ -18,9 +18,7 @@ async def get_trendy_store_locations(product_metadata: dict, user_style_descript
     )
     if isinstance(stores, str):
         stores = json.loads(stores)
-    print('stores', stores)
-    print('stores query', stores.get('query'))
-    print('stores results', stores.get('results'))
+
 
     # 2. Use the store extractor agent to get the final list of stores and location
     from models.trend import StoreExtractionRequest, StoreExtractionResponse  # define these if not present
@@ -36,7 +34,6 @@ async def get_trendy_store_locations(product_metadata: dict, user_style_descript
         data = json.loads(response)
     else:
         data = {}
-    print('data', data)
     extracted_stores = data.get('stores', [])
     extracted_location = data.get('location', '')
     print('extracted_stores', extracted_stores)

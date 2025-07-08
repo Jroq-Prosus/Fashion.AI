@@ -7,8 +7,6 @@ export interface RetrievalResult {
   products: Product[];
 }
 
-
-
 export interface ChatMessage {
   id: string;
   text: string;
@@ -16,4 +14,23 @@ export interface ChatMessage {
   timestamp: Date;
   isTyping?: boolean;
   productPreview?: ProductPreview;
+  isThinking?: boolean;
+  type?: 'store-maps';
+  stores?: Array<{
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+  }>;
 }
+
+export type TrendGeoStore = {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+};
+
+export type TrendGeoRes = {
+  stores: TrendGeoStore[];
+};

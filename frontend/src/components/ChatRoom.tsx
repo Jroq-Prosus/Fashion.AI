@@ -5,13 +5,13 @@ import {
   imageRetrieval,
   onlineSearchAgent,
   generateFashionAdvisorResponse,
+  fashionAdvisorVisual,
+  fetchTrendGeoStores,
 } from '../lib/fetcher';
 import { ChatMessage, RetrievalResult } from '@/models/chat';
 import { ProductPreview } from '@/models/product';
 import { useNavigate } from 'react-router-dom';
-
-
-
+import { type TrendGeoRes } from '@/models/chat';
 
 interface ChatRoomProps {
   isOpen: boolean;
@@ -35,6 +35,11 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [lastProductForNearby, setLastProductForNearby] = useState<any>(null);
+  const [lastUserQuery, setLastUserQuery] = useState<string>('');
+  const [showNearbyButton, setShowNearbyButton] = useState(false);
+  const [nearbySearchLoading, setNearbySearchLoading] = useState(false);
+  const [nearbyButtonMessageId, setNearbyButtonMessageId] = useState<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,13 +49,14 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     scrollToBottom();
   }, [messages]);
 
-  const addMessage = (text: string, isUser: boolean, isTyping = false) => {
+  const addMessage = (text: string, isUser: boolean, isTyping = false, options?: any) => {
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),
       text,
       isUser,
       timestamp: new Date(),
       isTyping,
+      ...options,
     };
     setMessages(prev => [...prev, newMessage]);
     return newMessage.id;
@@ -67,6 +73,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     const typingMessageId = addMessage('', false, true);
     let aiResponse = '';
     let productPreview: ProductPreview | undefined = undefined;
+    let firstProduct: any = null;
     try {
       if (image) {
         // 1. Detect objects
@@ -92,7 +99,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
           retrievalResult.retrieved_image_paths &&
           retrievalResult.retrieved_image_paths.length > 0
         ) {
-          const firstProduct = retrievalResult.products[0];
+          firstProduct = retrievalResult.products[0];
           const firstImage = retrievalResult.retrieved_image_paths[0];
           productPreview = {
             id: firstProduct.id,
@@ -100,6 +107,11 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
             name: firstProduct.name,
             description: firstProduct.description,
           };
+          setLastProductForNearby(firstProduct);
+          setLastUserQuery(query || '');
+          setTimeout(() => {
+            setShowNearbyButton(true);
+          }, 500);
         }
         const advisorResponse = await generateFashionAdvisorResponse(
           image,
@@ -110,15 +122,43 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
         aiResponse = advisorResponse && advisorResponse.response
           ? advisorResponse.response
           : 'AI response generated.';
+        updateMessage(typingMessageId, aiResponse, { productPreview });
+        if (productPreview) {
+          setLastProductForNearby(firstProduct);
+          setLastUserQuery(query || '');
+          setTimeout(() => {
+            setShowNearbyButton(true);
+          }, 500);
+        }
+
+        // --- Add: Make another API call after advisorResponse ---
+        /** Comment out for now as this is kinda duplicate of generateFashionAdvisorResponse
+        * try {
+        *   const followupData = await fashionAdvisorVisual(image, query || '');
+        *   let followupMsg = '';
+        *   if (followupData?.response && typeof followupData.response === 'string' && followupData.response.trim()) {
+        *     followupMsg = followupData.response;
+        *   } else if (typeof followupData === 'object' && Object.keys(followupData).length > 0) {
+        *     followupMsg = 'AI (follow-up) response:\n' + JSON.stringify(followupData, null, 2);
+        *   } else {
+        *     followupMsg = 'AI (follow-up) did not return a readable response.';
+        *   }
+        *   addMessage(followupMsg, false);
+        * } catch (followupErr: any) {
+        *   addMessage('Follow-up AI response failed. Please try again later.', false);
+        * }
+        // --- End add ---
+        */
       } else if (query) {
         // Text only: online search agent
         const result = await onlineSearchAgent(query);
         aiResponse = result && result.message ? result.message : 'Search completed.';
+        updateMessage(typingMessageId, aiResponse, { productPreview });
       }
     } catch (error: any) {
       aiResponse = error.message || 'An error occurred.';
+      updateMessage(typingMessageId, aiResponse, { productPreview });
     }
-    updateMessage(typingMessageId, aiResponse, { productPreview });
     setIsProcessing(false);
   };
 
@@ -166,6 +206,49 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   const handleAddToCart = (product: ProductPreview) => {
     // TODO: Implement add to cart logic
     alert(`Added ${product.name} to cart!`);
+  };
+
+  const handleSearchFashionNearby = async (product: any, userQuery: string, messageId: string) => {
+    setNearbySearchLoading(true);
+    setMessages(prev => prev.map(msg =>
+      msg.id === messageId ? { ...msg, isThinking: true } : msg
+    ));
+    const stopThinking = () => setMessages(prev => prev.map(msg =>
+      msg.id === messageId ? { ...msg, isThinking: false } : msg
+    ));
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const user_location = `${position.coords.latitude},${position.coords.longitude}`;
+        try {
+          const trendGeoRes: TrendGeoRes = await fetchTrendGeoStores(product, userQuery, user_location);
+          console.log('trendGeoRes', trendGeoRes);
+          if (trendGeoRes && Array.isArray(trendGeoRes.stores) && trendGeoRes.stores.length > 0) {
+            addMessage('', false, false, {
+              type: 'store-maps',
+              stores: trendGeoRes.stores
+            });
+          } else {
+            addMessage('No nearby store recommendations found.', false);
+          }
+          stopThinking();
+        } catch (err) {
+          addMessage('Failed to fetch nearby store recommendations.', false);
+          stopThinking();
+        }
+        setNearbySearchLoading(false);
+        setShowNearbyButton(false);
+      }, () => {
+        addMessage('Location access denied. Cannot fetch nearby store recommendations.', false);
+        stopThinking();
+        setNearbySearchLoading(false);
+        setShowNearbyButton(false);
+      });
+    } else {
+      addMessage('Geolocation is not supported by your browser.', false);
+      stopThinking();
+      setNearbySearchLoading(false);
+      setShowNearbyButton(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -239,6 +322,30 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
                         </div>
                       </div>
                     )}
+                    {message.isThinking && (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">AI is thinking...</span>
+                      </div>
+                    )}
+                    {message.type === 'store-maps' && message.stores && (
+                      <div className="space-y-4 mt-2">
+                        {message.stores.map((store, idx) => (
+                          <div key={idx} className="mb-4">
+                            <div className="font-semibold">{store.name}</div>
+                            <div className="text-sm text-gray-600 mb-2">{store.address}</div>
+                            <iframe
+                              width="250"
+                              height="150"
+                              style={{ border: 0, borderRadius: '8px' }}
+                              loading="lazy"
+                              allowFullScreen
+                              src={`https://www.google.com/maps?q=${store.latitude},${store.longitude}&z=15&output=embed`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
                 <p className={`text-xs mt-2 ${message.isUser ? 'text-purple-100' : 'text-gray-500'}`}>
@@ -247,6 +354,38 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
               </div>
             </div>
           ))}
+          {showNearbyButton && lastProductForNearby && lastUserQuery && (
+            <div className="flex justify-end">
+              <div className="max-w-[70%] p-4 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 text-white mt-4">
+                {!nearbySearchLoading ? (
+                  <button
+                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                    onClick={() => {
+                      // Add a user message for the button, then call the handler
+                      const msgId = crypto.randomUUID();
+                      setNearbyButtonMessageId(msgId);
+                      setMessages(prev => [...prev, {
+                        id: msgId,
+                        text: 'Search for fashion nearby',
+                        isUser: true,
+                        timestamp: new Date(),
+                        isThinking: false,
+                      }]);
+                      setShowNearbyButton(false);
+                      handleSearchFashionNearby(lastProductForNearby, lastUserQuery, msgId);
+                    }}
+                  >
+                    Search for fashion nearby
+                  </button>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">AI is thinking...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 

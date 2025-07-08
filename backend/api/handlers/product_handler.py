@@ -53,7 +53,6 @@ def get_all_products(page: int = 1):
         }
     """
     products = product_controller.retrieve_all_products(page)
-    print("products", products)
     return standard_response(
         code=200,
         message="Successfully retrieved products",

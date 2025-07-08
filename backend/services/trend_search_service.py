@@ -1,5 +1,6 @@
 import os
 import requests
+from utils.utils import reverse_geocode
 from models.trend import WebSearchRequest, WebSearchResponse
 from dotenv import load_dotenv
 from typing import List, Dict
@@ -60,8 +61,9 @@ async def search_similar_products(trend_keywords: str, location: str, style_desc
     # This is a placeholder for Tavily agent integration.
     # In production, use uagents or HTTP API as per your infra.
     # Here, we simulate a web search with requests (replace with agent call if needed).
-    QUERY = f"stores near {location} selling products matching: {trend_keywords['analysis']}. User is looking for: {style_description}"
+    QUERY = f"stores near {reverse_geocode(location)} selling products matching: {trend_keywords['analysis']}. User is looking for: {style_description}"
     print('QUERY', QUERY)
+    print("--------------------------------\n")
     # agent1q2pm7q68sxus5jtwge6x9x6eqlp2f2tqh54fqtc9y4e89fnlyeps5mah6wh
     # sender = Identity.from_seed('tavily', 0)
     # address = sender.address
@@ -71,8 +73,10 @@ async def search_similar_products(trend_keywords: str, location: str, style_desc
     if isinstance(response, Envelope):
         data = json.loads(response.decode_payload())
         print('search_similar_products response', data)
+        print("--------------------------------\n")
         return data
     print('search_similar_products response', response)
+    print("--------------------------------\n")
     return response
 
 

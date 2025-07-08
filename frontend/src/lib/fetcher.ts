@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import type { Product } from '../models/product';
 
 const BASE_URL = import.meta.env.BACKEND_URL || 'http://localhost:8000'
 
@@ -42,5 +43,26 @@ export async function onlineSearchAgent(userQuery: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ user_query: userQuery }),
+  });
+}
+
+export async function fashionAdvisorVisual(image_base64: string, user_query: string) {
+  return fetcher('/ai/fashion-advisor-visual', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image_base64, user_query }),
+  });
+}
+
+export async function fetchTrendGeoStores(product_metadata: Product, user_style_description: string, user_location: string) {
+  console.log('fetchTrendGeoStores', product_metadata, user_style_description, user_location);
+  return fetcher('/trend-geo/stores', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      product_metadata,
+      user_style_description,
+      user_location,
+    }),
   });
 } 
