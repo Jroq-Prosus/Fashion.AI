@@ -145,7 +145,7 @@ def image_retrieval(payload: DetectionInput, k: int = Query(...)):
     }
 
 
-@router.post("/response-generation-fasion-advisor")
+@router.post("/response-generation-fasion-advisor") # embed feature session tracking here
 def response_generation(
     image: ImagePayload,
     data: RetrievalOutput,
