@@ -14,6 +14,18 @@ import { ChatMessageWithImage, VoiceToTextResponse } from '@/models/chat';
 import { ProductPreview } from '@/models/product';
 import { useNavigate } from 'react-router-dom';
 import { type TrendGeoRes } from '@/models/chat';
+import { useAuth } from '@/hooks/use-auth';
+
+// Helper to decode JWT and get sub (user_id)
+function getUserIdFromToken(token?: string | null): string | undefined {
+  if (!token) return undefined;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub;
+  } catch {
+    return undefined;
+  }
+}
 
 interface ChatRoomProps {
   isOpen: boolean;
@@ -46,6 +58,8 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const { user, token } = useAuth();
+  const user_id = getUserIdFromToken(token);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

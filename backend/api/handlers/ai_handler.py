@@ -25,6 +25,7 @@ from utils.utils import translate_url
 from schemas.product_schema import ProductMetadata
 import re
 from utils.jwt_util import *
+import logging
 
 router = APIRouter(prefix="/ai", tags=["Ai"])
 
@@ -170,7 +171,6 @@ def response_generation(
     data: RetrievalOutput,
     user_query: str = Query(...),
     k: int = Query(5, description="Number of results per object"),
-    user_id: str = Depends(get_user_id)
 ):
     """
     Purpose: Generates a natural language response as a fashion advisor, based on the user's image, retrieval results, and query.
@@ -261,15 +261,6 @@ def response_generation(
         {"role": "user", "content": content}
     ]
 
-    # Track user session in Supabase
-    session_data = {
-        "user_id": user_id,
-        "query_text": user_query,
-        "image_path": query_image,
-        "recommendations": [p["image"] for p in products]
-    }
-    Initializer.database.table("user_sessions").insert(session_data).execute()
-
     # Generate response
     ai_response = groq_llama_completion(messages, token=1024)
 
@@ -308,7 +299,8 @@ def full_fashion_advisor(
         image=image_payload,
         data=retrieval_output,
         user_query=payload.user_query,
-        k=k
+        k=k,
+        user_id=user_id  # Pass user_id explicitly
     )
 
     # ======= EMBED SESSION TRACKING =======
@@ -318,6 +310,7 @@ def full_fashion_advisor(
         "image_path": payload.image_base64,  # optionally upload to Supabase Storage
         "recommendations": retrieval_result["retrieved_image_paths"]
     }
+    print(f"[DEBUG] full_fashion_advisor user_id: {user_id}")
     Initializer.database.table("user_sessions").insert(session_data).execute()
 
     return advisor_response
@@ -434,6 +427,8 @@ def fashion_advisor_text_only(
         "image_path": None,  # No image in text-only flow
         "recommendations": [p["name"] for p in selected_products]  # Save recommended product names
     }
+    print(f"[DEBUG] fashion_advisor_text_only user_id: {user_id}")
+    print(f"[DEBUG] fashion_advisor_text_only session_data: {session_data}")
     Initializer.database.table("user_sessions").insert(session_data).execute()
 
     return {
