@@ -47,10 +47,16 @@ export async function onlineSearchAgent(userQuery: string) {
   });
 }
 
+function getAuthHeaders() {
+  const token = localStorage.getItem('auth_token');
+  console.log('getAuthHeaders', token);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function fashionAdvisorVisual(image_base64: string, user_query: string) {
   return fetcher('/ai/fashion-advisor-visual', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ image_base64, user_query }),
   });
 }
@@ -81,7 +87,8 @@ export async function voiceToText(file: File): Promise<VoiceToTextResponse> {
 export async function fashionAdvisorTextOnly(userQuery: string) {
   return fetcher(`/ai/fashion-advisor-text-only?user_query=${encodeURIComponent(userQuery)}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({}),
   });
 }
 

@@ -1,6 +1,7 @@
 from db.supabase_client import supabase
 from fastapi import HTTPException
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST
+from datetime import datetime
 
 def login_service(email: str, password: str) -> str:
     try:
@@ -26,6 +27,19 @@ def signup_service(email: str, password: str) -> dict:
                 status_code=HTTP_400_BAD_REQUEST,
                 detail="User creation failed."
             )
+        # Insert into public.users
+        user_id = response.user.id
+        now = datetime.utcnow().isoformat()
+        user_row = {
+            "id": user_id,
+            "email": email,
+            "username": email,  # or derive from email
+            "full_name": email,  # or blank
+            "password": "",    # never store plaintext password
+            "created_at": now,
+            "updated_at": now
+        }
+        supabase.table("users").insert(user_row).execute()
         return {"email": email, "message": "User created successfully."}
     except Exception as e:
         raise HTTPException(

@@ -1,5 +1,5 @@
 """ LOADING LIBRARIES """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List
 from io import BytesIO
@@ -24,6 +24,8 @@ import os
 from utils.utils import translate_url
 from schemas.product_schema import ProductMetadata
 import re
+from utils.jwt_util import *
+import logging
 
 router = APIRouter(prefix="/ai", tags=["Ai"])
 
@@ -163,12 +165,12 @@ def image_retrieval(payload: DetectionInput, k: int = Query(5, description="Numb
     }
 
 
-@router.post("/response-generation-fasion-advisor")
+@router.post("/response-generation-fasion-advisor")  # embed feature session tracking here
 def response_generation(
     image: ImagePayload,
     data: RetrievalOutput,
     user_query: str = Query(...),
-    k: int = Query(5, description="Number of results per object")
+    k: int = Query(5, description="Number of results per object"),
 ):
     """
     Purpose: Generates a natural language response as a fashion advisor, based on the user's image, retrieval results, and query.
@@ -180,112 +182,98 @@ def response_generation(
     Example Response:
         {"response": "Based on your outfit, I recommend..."}
     """
-    """ Load the image """
+    # Load the image
     query_image = image.image_base64
 
-    """ Preprocess the Retrieval Output """
-    # Step 0: Replace spaces in image paths with %20 and trailing backslash with double backslash
-
-    # Step 1: Combine all data
+    # Preprocess the Retrieval Output
     combined = list(zip(
         data.retrieved_image_paths,
         data.detected_labels,
         data.similarity_scores
     ))
-    # Step 2: Define category priority
+
+    # Define category priority
     priority_order = ["top", "bottom", "shoes", "hat", "outer", "dress", "bag"]
-    best_items_by_label = defaultdict(
-        lambda: (None, -1))  # label -> (item, score)
-    for item in combined:
-        path, label, score = item
+    best_items_by_label = defaultdict(lambda: (None, -1))  # label -> (item, score)
+
+    for path, label, score in combined:
         if score > best_items_by_label[label][1]:
-            best_items_by_label[label] = (item, score)
-    # Step 3: Pick top 3 based on priority order
+            best_items_by_label[label] = ((path, label, score), score)
+
+    # Pick top N items based on priority order
     selected_items = []
     for label in priority_order:
         if label in best_items_by_label:
             selected_items.append(best_items_by_label[label][0])
         if len(selected_items) == Initializer.max_selected_items_mllm:
             break
-    # Step 4: Unpack result
-    retrieved_image_paths, detected_labels, similarity_scores = zip(
-        *selected_items)
-    # Step 5: retrieval result
+
+    if not selected_items:
+        raise HTTPException(status_code=404, detail="No matching items found")
+
+    retrieved_image_paths, detected_labels, similarity_scores = zip(*selected_items)
+
     retrieval_result = {
         "retrieved_image_paths": list(retrieved_image_paths),
         "detected_labels": list(detected_labels),
         "similarity_scores": list(similarity_scores)
     }
 
-    """ Construct the Prompt Message Payload """
-    # Main Query
+    # Construct Prompt Message Payload
     content = [{
         "type": "text",
         "text": f"USER's QUERY: {user_query}"
-    }]
-    # Add the Query from the User
-    content.append({
+    }, {
         "type": "text",
-        "text": f"This is the user photo in his/her style wearing an outfit."
-    })
-    # Get Image Url accordingly
-    IMAGE_DATA_URL = query_image
-    content.append({
+        "text": "This is the user photo in his/her style wearing an outfit."
+    }, {
         "type": "image_url",
-        "image_url": {
-            "url": IMAGE_DATA_URL
-        }
-    })
-    # Get Extra Info
-    i = 1
+        "image_url": {"url": query_image}
+    }]
+
     products = []  # Collect product metadata for response
+    i = 1
     for path in retrieval_result["retrieved_image_paths"]:
-        # Query Supabase for the product with this image path
         path = translate_url(path)
         response = Initializer.database.table("products").select("*").eq("image", path).execute()
         if not response.data or len(response.data) == 0:
             raise ValueError(f"No product found for image path: {path}")
         product = response.data[0]
-        products.append(product)  # Add to products list
-        extra_info = f"{i}. Extra Info on this image reference that matched to the user's outfit (only look at this if you find helpful):\n"
+        products.append(product)
+
+        extra_info = f"{i}. Extra Info on this image reference:\n"
         for key, value in product.items():
             extra_info += f"{key}: {value}\n"
-        content.append({
-            "type": "text",
-            "text": f"{extra_info}"
-        })
-        # Generate a public URL for the image in Supabase Storage
-        # If path is already a public URL, use it directly; otherwise, construct it
-        if path.startswith("http://") or path.startswith("https://"):
+        content.append({"type": "text", "text": extra_info})
+
+        # Add public URL
+        if path.startswith(("http://", "https://")):
             image_url = path
         else:
             SUPABASE_URL = Initializer.database.url if hasattr(Initializer.database, 'url') else os.getenv("SUPABASE_URL")
             SUPABASE_BUCKET = "product-images"
             image_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{path}"
-        content.append({
-            "type": "image_url",
-            "image_url": {
-                "url": image_url
-            }
-        })
+        content.append({"type": "image_url", "image_url": {"url": image_url}})
         i += 1
-    # Construct the Final Message Payload
+
     messages = [
-        {
-            "role": "system",
-            "content": system_instruction_outfit_advisor
-        },
-        {
-            "role": "user",
-            "content": content
-        }
+        {"role": "system", "content": system_instruction_outfit_advisor},
+        {"role": "user", "content": content}
     ]
 
-    """ Generate Output """
-    return {"response": groq_llama_completion(messages, token=1024), "products": products[:k]}
+    # Generate response
+    ai_response = groq_llama_completion(messages, token=1024)
+
+    return {
+        "response": ai_response,
+        "products": products[:k]
+    }
 
 @router.post("/fashion-advisor-visual")
-def full_fashion_advisor(payload: FashionAdvisorInput):
+def full_fashion_advisor(
+    payload: FashionAdvisorInput,
+    user_id: str = Depends(get_user_id)  # Inject user_id from token
+):
     """
     Purpose: A full pipeline endpoint that performs object detection,
     image retrieval, and fashion response generation in a single call.
@@ -307,13 +295,25 @@ def full_fashion_advisor(payload: FashionAdvisorInput):
     # Step 3: Response Generation
     image_payload = ImagePayload(image_base64=payload.image_base64)
     retrieval_output = RetrievalOutput(**retrieval_result)
-
-    return response_generation(
+    advisor_response = response_generation(
         image=image_payload,
         data=retrieval_output,
         user_query=payload.user_query,
-        k=k
+        k=k,
+        user_id=user_id  # Pass user_id explicitly
     )
+
+    # ======= EMBED SESSION TRACKING =======
+    session_data = {
+        "user_id": user_id,  # NULL if anonymous
+        "query_text": payload.user_query,
+        "image_path": payload.image_base64,  # optionally upload to Supabase Storage
+        "recommendations": retrieval_result["retrieved_image_paths"]
+    }
+    print(f"[DEBUG] full_fashion_advisor user_id: {user_id}")
+    Initializer.database.table("user_sessions").insert(session_data).execute()
+
+    return advisor_response
 
 @router.post("/online-search-agent")
 async def online_agent(payload: UserQuery):
@@ -361,7 +361,11 @@ async def online_agent(payload: UserQuery):
     return {"response":result}
 
 @router.post("/fashion-advisor-text-only")
-def fashion_advisor_text_only(user_query: str = Query(...), k: int = Query(3, description="Number of top products to return")):
+def fashion_advisor_text_only(
+    user_query: str = Query(...), 
+    k: int = Query(3, description="Number of top products to return"),
+    user_id: str = Depends(get_user_id)  # Get user_id from token if available
+):
     """
     Purpose: Generate a fashion recommendation/analysis based only on user_query and all products in the database.
     Input: user_query (string)
@@ -416,5 +420,18 @@ def fashion_advisor_text_only(user_query: str = Query(...), k: int = Query(3, de
     # Generate the response
     response_text = groq_llama_completion(messages, token=1024)
 
-    return {"response": response_text, "products": selected_products}
+    # ======= EMBED SESSION TRACKING =======
+    session_data = {
+        "user_id": user_id,  # NULL if anonymous
+        "query_text": user_query,
+        "image_path": None,  # No image in text-only flow
+        "recommendations": [p["name"] for p in selected_products]  # Save recommended product names
+    }
+    print(f"[DEBUG] fashion_advisor_text_only user_id: {user_id}")
+    print(f"[DEBUG] fashion_advisor_text_only session_data: {session_data}")
+    Initializer.database.table("user_sessions").insert(session_data).execute()
 
+    return {
+        "response": response_text,
+        "products": selected_products
+    }
