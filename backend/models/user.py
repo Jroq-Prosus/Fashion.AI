@@ -1,6 +1,15 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+class User(BaseModel):
+    id: str
+    email: str
+    username: str
+    full_name: str
+    password: str
+    created_at: datetime
+    updated_at: datetime
+
 class UserImage(BaseModel):
     id: str
     user_id: str
@@ -13,3 +22,9 @@ class FashionAdvisorInput(BaseModel):
 
 class UserQuery(BaseModel):
     user_query: str
+
+class UserProfile(BaseModel):
+    user_id: str
+    description: str
+    created_at: datetime
+    updated_at: datetime

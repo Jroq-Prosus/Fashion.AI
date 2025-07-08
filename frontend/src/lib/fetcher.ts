@@ -107,3 +107,17 @@ export async function signup(email: string, password: string) {
     body: JSON.stringify({ email, password }),
   });
 } 
+
+export async function fetchUserProfile(user_id: string) {
+  return fetcher(`/users/${user_id}/profile`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+  });
+}
+
+export async function fetchUserByEmail(email: string) {
+  return fetcher(`/users/${email}/user`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+  });
+}

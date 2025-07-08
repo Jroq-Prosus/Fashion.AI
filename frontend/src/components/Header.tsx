@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/use-auth';
 
 const Header = () => {
   const { user, logout } = useAuth();
-  console.log('user', user);
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 z-50">
@@ -20,14 +19,6 @@ const Header = () => {
             <a href="#" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Explore</a>
             <a href="#" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">My Style</a>
             <a href="#" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Help</a>
-            {user ? (
-              <span className="text-gray-700 font-medium flex items-center gap-2">
-                {user}
-                <button onClick={logout} className="ml-2 text-xs text-purple-600 hover:underline">Logout</button>
-              </span>
-            ) : (
-              <Link to="/login" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Login</Link>
-            )}
           </nav>
         </div>
         
@@ -40,11 +31,22 @@ const Header = () => {
             <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">3</span>
           </button>
           {user ? (
-            <span className="p-2 rounded-full bg-purple-50 text-purple-600 font-medium flex items-center gap-2">
+            <Link
+              to={`/user/${user}`}
+              className="p-2 rounded-full bg-purple-50 text-purple-600 font-medium flex items-center gap-2 hover:bg-purple-100 transition-colors"
+            >
               <User className="w-5 h-5" />
               {user}
-              <button onClick={logout} className="ml-1 text-xs text-purple-600 hover:underline">Logout</button>
-            </span>
+              <button
+                onClick={e => {
+                  e.preventDefault();
+                  logout();
+                }}
+                className="ml-1 text-xs text-purple-600 hover:underline"
+              >
+                Logout
+              </button>
+            </Link>
           ) : (
             <Link to="/login" className="p-2 hover:bg-purple-50 rounded-full transition-colors">
               <User className="w-5 h-5 text-gray-600 hover:text-purple-600" />

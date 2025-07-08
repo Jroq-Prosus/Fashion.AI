@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ProductPage from "./pages/ProductPage";
 import LoginSignup from "./pages/LoginSignup";
+import UserProfile from "./pages/UserProfile";
 import { AuthProvider } from "./lib/authProvider";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/product/:id" element={<ProductPage />} />
             <Route path="/login" element={<LoginSignup />} />
+            <Route path="/user/:user_id" element={<UserProfile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

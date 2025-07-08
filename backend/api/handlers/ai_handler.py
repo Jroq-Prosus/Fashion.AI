@@ -16,7 +16,7 @@ from collections import defaultdict
 from models.image import ImagePayload
 from models.detection import DetectionInput
 from models.retrieval import RetrievalOutput
-from models.user import FashionAdvisorInput,UserQuery
+from models.user import FashionAdvisorInput,UserQuery, UserProfile
 from fastapi import File, UploadFile
 from models.trend_geo import TrendGeoRequest
 from assets.prompt_template_setup import *
@@ -171,6 +171,8 @@ def response_generation(
     data: RetrievalOutput,
     user_query: str = Query(...),
     k: int = Query(5, description="Number of results per object"),
+    user_id: str = None,
+    user_profile_message: dict = None
 ):
     """
     Purpose: Generates a natural language response as a fashion advisor, based on the user's image, retrieval results, and query.
@@ -223,7 +225,10 @@ def response_generation(
     content = [{
         "type": "text",
         "text": f"USER's QUERY: {user_query}"
-    }, {
+    }]
+    if user_profile_message:
+        content.append(user_profile_message)
+    content += [{
         "type": "text",
         "text": "This is the user photo in his/her style wearing an outfit."
     }, {
@@ -280,6 +285,13 @@ def full_fashion_advisor(
     Input: Base64 image and user query
     Output: Generated fashion advice response
     """
+    # Step 0: Fetch user profile description
+    user_profile_desc = None
+    if user_id:
+        profile_resp = Initializer.database.table("user_profile").select("description").eq("user_id", user_id).single().execute()
+        if profile_resp.data and "description" in profile_resp.data:
+            user_profile_desc = profile_resp.data["description"]
+
     # Step 1: Object Detection
     detection_payload = ImagePayload(image_base64=payload.image_base64)
     detection_result = object_detector(detection_payload)
@@ -295,12 +307,18 @@ def full_fashion_advisor(
     # Step 3: Response Generation
     image_payload = ImagePayload(image_base64=payload.image_base64)
     retrieval_output = RetrievalOutput(**retrieval_result)
+    # Prepare user profile message
+    user_profile_message = None
+    if user_profile_desc:
+        user_profile_message = {"type": "text", "text": f"USER PROFILE: {user_profile_desc}"}
+    # Pass user_profile_message to response_generation
     advisor_response = response_generation(
         image=image_payload,
         data=retrieval_output,
         user_query=payload.user_query,
         k=k,
-        user_id=user_id  # Pass user_id explicitly
+        user_id=user_id,  # Pass user_id explicitly
+        user_profile_message=user_profile_message
     )
 
     # ======= EMBED SESSION TRACKING =======
@@ -373,6 +391,13 @@ def fashion_advisor_text_only(
     Example Response:
         {"response": "Based on your query, I recommend...", "products": [ ... ]}
     """
+    # Fetch user profile description
+    user_profile_desc = None
+    if user_id:
+        profile_resp = Initializer.database.table("user_profile").select("description").eq("user_id", user_id).single().execute()
+        if profile_resp.data and "description" in profile_resp.data:
+            user_profile_desc = profile_resp.data["description"]
+
     # Fetch all products (no pagination for now)
     response = Initializer.database.table("products").select("*").execute()
     products = response.data if response.data else []
@@ -409,6 +434,10 @@ def fashion_advisor_text_only(
     # Construct the prompt
     content = [
         {"type": "text", "text": f"USER's QUERY: {user_query}"},
+    ]
+    if user_profile_desc:
+        content.append({"type": "text", "text": f"USER PROFILE: {user_profile_desc}"})
+    content += [
         {"type": "text", "text": "Here are some available products in our store:"},
         {"type": "text", "text": product_info}
     ]
