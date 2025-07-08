@@ -9,6 +9,8 @@ import torch
 import json
 import torch
 import os
+from db.supabase_client import supabase
+import requests
 load_dotenv()
 
 
@@ -30,18 +32,33 @@ class Initializer:
             "cuda" if torch.cuda.is_available() else "cpu")
         self.max_selected_items_mllm = 5
         self.embed_dim = 768
-        self.data_dir = "assets/image_database"
-        self.index_path = f"{self.data_dir}/image.faiss"
-        self.index = faiss.read_index(self.index_path)
-        self.database = {}
-        with open(f"{self.data_dir}/database.json", "r") as f:
-            self.database = json.load(f)
 
-        print("database", self.database)
+        # Download image.faiss from Supabase Storage if not present
+        SUPABASE_URL = os.getenv("SUPABASE_URL")
+        SUPABASE_BUCKET_IMAGES = "product-images"   
+        SUPABASE_BUCKET_FAISS = "faiss"
+        faiss_response = supabase.storage.from_(SUPABASE_BUCKET_FAISS).get_public_url('image.faiss')
+        image_response = supabase.storage.from_(SUPABASE_BUCKET_IMAGES).list()
+
+        faiss_url = faiss_response
+        local_faiss_path = "/tmp/image.faiss"
+        if not os.path.exists(local_faiss_path):
+            r = requests.get(faiss_url)
+            r.raise_for_status()
+            with open(local_faiss_path, "wb") as f:
+                f.write(r.content)
+        self.index_path = faiss_response  # Supabase Storage URL for reference
+        self.index = faiss.read_index(local_faiss_path)
+
+        self.database = supabase
+
+        # Fetch image paths from Supabase Storage (bucket: product-images)
+        image_files = [
+            f["name"] for f in image_response if f["name"].lower().endswith((".png", ".jpg", ".jpeg"))
+        ]
         self.image_paths = [
-            os.path.join(self.data_dir, f).replace("\\", "/")
-            for f in os.listdir(self.data_dir)
-            if f.lower().endswith((".png", ".jpg", ".jpeg"))
+            f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET_IMAGES}/{file_name}"
+            for file_name in image_files
         ]
 
         # LOAD YOLO MODEL - object detector
@@ -60,6 +77,9 @@ class Initializer:
 
         # LOAD GROQ CLIENT
         self.client_groq = Groq()
+
+        # Set self.database to the Supabase client for later table queries
+        self.database = supabase
 
         # INITIALIZE
         self._initialized = True
