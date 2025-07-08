@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetcher } from '../lib/fetcher';
+import { toast } from '@/components/ui/use-toast';
 
 const ProductPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +19,10 @@ const ProductPage = () => {
 
   const handleAddToCart = (product: any) => {
     // TODO: Implement add to cart logic
-    alert(`Added ${product.name} to cart!`);
+    toast({
+      title: 'Added to cart',
+      description: `${product.name} has been added to your cart!`,
+    });
   };
 
   if (isLoading) {

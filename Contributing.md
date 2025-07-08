@@ -1,93 +1,67 @@
-# Setup 
+# Contributing Guide
 
-## Install python 3.10
+## 1. Environment Setup
 
-### macOS
+- **Python:** Use Python 3.10. Install via [pyenv](https://github.com/pyenv/pyenv) or from [python.org](https://www.python.org/downloads/release/python-31013/).
+- **Virtual Environment:**  
+  - Create: `python3.10 -m venv venv`  
+  - Activate:  
+    - macOS/Linux: `source venv/bin/activate`  
+    - Windows: `venv\Scripts\activate`
+- **Dependencies:**  
+  - `pip install -r requirements.txt`  
+  - `pip install --upgrade supabase`
+- **Node.js (Frontend):**  
+  - Install dependencies: `npm install` (in `/frontend`)
+- **Environment Variables:**  
+  - Check for `.env.example` in each relevant directory (e.g., `backend`, `frontend`).
+  - Copy to `.env` and fill in required values.
 
-1. **Install [Homebrew](https://brew.sh/) (if not already installed):**
-   ```sh
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   ```
+## 2. Platform-Specific Notes
 
-2. **Install Python 3.10:**
-   ```sh
-   brew install pyenv
-   pyenv install 3.10.18
-   pyenv local 3.10.18
-   ```
+- **macOS:**  
+  - Install Homebrew if needed:  
+    `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+  - Install pyenv: `brew install pyenv`
+- **Linux:**  
+  - Install prerequisites:  
+    `sudo apt update && sudo apt install -y build-essential ...`
+  - Install pyenv:  
+    `curl https://pyenv.run | bash`
+- **Windows:**  
+  - Download Python from [python.org](https://www.python.org/downloads/release/python-31013/)  
+  - Ensure “Add Python to PATH” is checked during installation.
 
-3. **Create and activate a virtual environment:**
-   ```sh
-   python3.10 -m venv venv
-   source venv/bin/activate
-   ```
+## 3. Running the Project
 
-4. **Install dependencies:**
-   ```sh
-   pip install -r requirements.txt
-   pip install --upgrade supabase
-   ```
+### Backend Scheduler
 
----
+- Navigate to `/backend`:
+  ```sh
+  cd backend
+  ```
+- Start the user profile scheduler:
+  ```sh
+  python -m services.user_profile_summary_job
+  ```
+  - This updates user profiles every hour.
 
-### Ubuntu / Linux
+### Frontend
 
-1. **Update and install prerequisites:**
-   ```sh
-   sudo apt update
-   sudo apt install -y build-essential libssl-dev zlib1g-dev \
-   libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-   libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
-   ```
-
-2. **Install pyenv and Python 3.10:**
-   ```sh
-   curl https://pyenv.run | bash
-   # Add pyenv to your shell (follow the printed instructions, or run:)
-   export PATH="$HOME/.pyenv/bin:$PATH"
-   eval "$(pyenv init --path)"
-   eval "$(pyenv virtualenv-init -)"
-   pyenv install 3.10.18
-   pyenv local 3.10.18
-   ```
-
-3. **Create and activate a virtual environment:**
-   ```sh
-   python3.10 -m venv venv
-   source venv/bin/activate
-   ```
-
-4. **Install dependencies:**
-   ```sh
-   pip install -r requirements.txt
-   pip install --upgrade supabase
-   ```
-
----
-
-### Windows
-
-1. **Download and install Python 3.10:**
-   - Go to [python.org/downloads/release/python-31013/](https://www.python.org/downloads/release/python-31013/)
-   - Download the Windows installer and run it.
-   - **Check "Add Python to PATH" during installation.**
-
-2. **Open Command Prompt (cmd) or PowerShell.**
-
-3. **Create and activate a virtual environment:**
-   ```sh
-   python -m venv venv
-   venv\Scripts\activate
-   ```
-
-4. **Install dependencies:**
-   ```sh
-   pip install -r requirements.txt
-   pip install --upgrade supabase
-   ```
+- Navigate to `/frontend`:
+  ```sh
+  cd frontend
+  ```
+- Install dependencies:
+  ```sh
+  npm install
+  ```
+- Start the development server:
+  ```sh
+  npm run dev
+  ```
+  - The frontend will run locally.
 
 ---
 
-> **Note:**
-> - Always activate the virtual environment (`source venv/bin/activate` on macOS/Linux, `venv\Scripts\activate` on Windows) before working on the project.
-> - If you use [pyenv](https://github.com/pyenv/pyenv), it helps manage multiple Python versions easily.
+**Tip:** Always activate your virtual environment before working on the project.

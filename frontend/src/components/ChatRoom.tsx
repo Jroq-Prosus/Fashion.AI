@@ -15,6 +15,7 @@ import { ProductPreview } from '@/models/product';
 import { useNavigate } from 'react-router-dom';
 import { type TrendGeoRes } from '@/models/chat';
 import { useAuth } from '@/hooks/use-auth';
+import { toast } from '@/components/ui/use-toast';
 
 // Helper to decode JWT and get sub (user_id)
 function getUserIdFromToken(token?: string | null): string | undefined {
@@ -179,6 +180,11 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
         addMessage('Could not transcribe audio.', false);
       }
     } catch (err: any) {
+      toast({
+        title: 'Voice-to-text failed',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
       addMessage('Voice-to-text failed. Please try again.', false);
     }
     setRecordedAudio(null);
@@ -192,7 +198,10 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
 
   const handleAddToCart = (product: ProductPreview) => {
     // TODO: Implement add to cart logic
-    alert(`Added ${product.name} to cart!`);
+    toast({
+      title: 'Added to cart',
+      description: `${product.name} has been added to your cart!`,
+    });
   };
 
   const handleSearchFashionNearby = async (product: any, userQuery: string, messageId: string) => {
@@ -218,18 +227,33 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
           }
           stopThinking();
         } catch (err) {
+          toast({
+            title: 'Nearby store search failed',
+            description: 'Failed to fetch nearby store recommendations.',
+            variant: 'destructive',
+          });
           addMessage('Failed to fetch nearby store recommendations.', false);
           stopThinking();
         }
         setNearbySearchLoading(false);
         setShowNearbyButton(false);
       }, () => {
+        toast({
+          title: 'Location access denied',
+          description: 'Cannot fetch nearby store recommendations.',
+          variant: 'destructive',
+        });
         addMessage('Location access denied. Cannot fetch nearby store recommendations.', false);
         stopThinking();
         setNearbySearchLoading(false);
         setShowNearbyButton(false);
       });
     } else {
+      toast({
+        title: 'Geolocation not supported',
+        description: 'Geolocation is not supported by your browser.',
+        variant: 'destructive',
+      });
       addMessage('Geolocation is not supported by your browser.', false);
       stopThinking();
       setNearbySearchLoading(false);
@@ -425,31 +449,39 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
                   handleProcessAudio();
                 } else {
                   if (!navigator.mediaDevices || !window.MediaRecorder) {
-                    alert('Audio recording is not supported in this browser.');
-                  } else {
-                    navigator.mediaDevices.getUserMedia({ audio: true })
-                      .then(stream => {
-                        const recorder = new MediaRecorder(stream);
-                        let localAudioChunks: Blob[] = [];
-                        recorder.ondataavailable = (e) => {
-                          if (e.data.size > 0) {
-                            localAudioChunks.push(e.data);
-                          }
-                        };
-                        recorder.onstop = () => {
-                          const audioBlob = new Blob(localAudioChunks, { type: 'audio/webm' });
-                          setRecordedAudio(audioBlob);
-                          stream.getTracks().forEach((track) => track.stop());
-                        };
-                        recorder.start();
-                        setMediaRecorder(recorder);
-                        setIsListening(true);
-                      })
-                      .catch(err => {
-                        console.error('Error accessing microphone:', err);
-                        alert('Could not access microphone. Please check browser permissions.');
-                      });
+                    toast({
+                      title: 'Audio recording not supported',
+                      description: 'Audio recording is not supported in this browser.',
+                      variant: 'destructive',
+                    });
+                    return;
                   }
+                  navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                      const recorder = new MediaRecorder(stream);
+                      let localAudioChunks: Blob[] = [];
+                      recorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) {
+                          localAudioChunks.push(e.data);
+                        }
+                      };
+                      recorder.onstop = () => {
+                        const audioBlob = new Blob(localAudioChunks, { type: 'audio/webm' });
+                        setRecordedAudio(audioBlob);
+                        stream.getTracks().forEach((track) => track.stop());
+                      };
+                      recorder.start();
+                      setMediaRecorder(recorder);
+                      setIsListening(true);
+                    })
+                    .catch(err => {
+                      console.error('Error accessing microphone:', err);
+                      toast({
+                        title: 'Microphone access error',
+                        description: 'Could not access microphone. Please check browser permissions.',
+                        variant: 'destructive',
+                      });
+                    });
                 }
               }}
               className={`p-3 rounded-xl transition-colors ${
