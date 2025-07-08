@@ -7,8 +7,9 @@ import {
   generateFashionAdvisorResponse,
   fashionAdvisorVisual,
   fetchTrendGeoStores,
+  voiceToText,
 } from '../lib/fetcher';
-import { ChatMessage, RetrievalResult } from '@/models/chat';
+import { ChatMessage, RetrievalResult, VoiceToTextResponse } from '@/models/chat';
 import { ProductPreview } from '@/models/product';
 import { useNavigate } from 'react-router-dom';
 import { type TrendGeoRes } from '@/models/chat';
@@ -40,6 +41,9 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   const [showNearbyButton, setShowNearbyButton] = useState(false);
   const [nearbySearchLoading, setNearbySearchLoading] = useState(false);
   const [nearbyButtonMessageId, setNearbyButtonMessageId] = useState<string | null>(null);
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,6 +52,11 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (!mediaRecorder) return;
+    if (isListening) setAudioChunks([]);
+  }, [mediaRecorder, isListening]);
 
   const addMessage = (text: string, isUser: boolean, isTyping = false, options?: any) => {
     const newMessage: ChatMessage = {
@@ -151,8 +160,9 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
         */
       } else if (query) {
         // Text only: online search agent
-        const result = await onlineSearchAgent(query);
-        aiResponse = result && result.message ? result.message : 'Search completed.';
+        const result: TrendGeoRes = await onlineSearchAgent(query);
+        console.log('onlineSearchAgent result', result);
+        aiResponse = result && result.stores && result.stores.length > 0 ? 'Search completed.' : 'No results found.';
         updateMessage(typingMessageId, aiResponse, { productPreview });
       }
     } catch (error: any) {
@@ -189,14 +199,61 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   };
 
   const handleVoiceInput = async () => {
-    setIsListening(true);
-    addMessage('🎙️ Voice message recorded', true);
-    // Simulate voice processing
-    setTimeout(async () => {
+    if (isListening) {
+      mediaRecorder?.stop();
       setIsListening(false);
-      const voiceQuery = 'stylish winter jacket for women';
-      await handleAIWorkflow(voiceQuery, undefined, true);
-    }, 2000);
+      return;
+    }
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      alert('Audio recording is not supported in this browser.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      setAudioChunks([]);
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          setAudioChunks((prev) => [...prev, e.data]);
+        }
+      };
+      recorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        setRecordedAudio(audioBlob);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+      recorder.start();
+      setIsListening(true);
+    } catch (err) {
+      alert('Could not start audio recording.');
+    }
+  };
+
+  const handleSendAudio = async () => {
+    if (!recordedAudio) return;
+    setIsProcessing(true);
+    addMessage('🎙️ Voice message recorded', true);
+    try {
+      const file = new File([recordedAudio], 'voice.webm', { type: 'audio/webm' });
+      const res: VoiceToTextResponse = await voiceToText(file);
+      const text = typeof res.data.transcript === 'string' ? res.data.transcript : (typeof res.message === 'string' ? res.message : '');
+      if (text) {
+        setInputValue(text);
+        await handleAIWorkflow(text, undefined, true);
+      } else {
+        addMessage('Could not transcribe audio.', false);
+      }
+    } catch (err: any) {
+      console.log('handleSendAudio error', err);
+      addMessage('Voice-to-text failed. Please try again.', false);
+    }
+    setRecordedAudio(null);
+    setIsProcessing(false);
+  };
+
+  const handleDiscardAudio = () => {
+    setRecordedAudio(null);
   };
 
   const removeSelectedImage = () => {
@@ -415,10 +472,30 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
                   ? 'bg-red-100 animate-pulse' 
                   : 'bg-blue-100 hover:bg-blue-200'
               }`}
-              title="Voice input"
+              title={isListening ? 'Stop recording' : 'Voice input'}
+              disabled={isProcessing}
             >
               <Mic className={`w-5 h-5 ${isListening ? 'text-red-600' : 'text-blue-600'}`} />
             </button>
+            {recordedAudio && (
+              <div className="flex items-center space-x-2 bg-gray-100 p-2 rounded-xl shadow-md">
+                <audio controls src={URL.createObjectURL(recordedAudio)} />
+                <button
+                  onClick={handleSendAudio}
+                  className="px-3 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-xs font-semibold hover:shadow-md transition-all duration-200"
+                  disabled={isProcessing}
+                >
+                  Send
+                </button>
+                <button
+                  onClick={handleDiscardAudio}
+                  className="text-red-500 hover:underline text-xs"
+                  disabled={isProcessing}
+                >
+                  Discard
+                </button>
+              </div>
+            )}
             
             <div className="flex-1 relative">
               <input

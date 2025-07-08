@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import type { Product } from '../models/product';
+import type { VoiceToTextResponse } from '../models/chat';
 
 const BASE_URL = import.meta.env.BACKEND_URL || 'http://localhost:8000'
 
@@ -64,5 +65,14 @@ export async function fetchTrendGeoStores(product_metadata: Product, user_style_
       user_style_description,
       user_location,
     }),
+  });
+}
+
+export async function voiceToText(file: File): Promise<VoiceToTextResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return fetcher('/voice-to-text', {
+    method: 'POST',
+    body: formData,
   });
 } 
