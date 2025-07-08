@@ -22,6 +22,8 @@ from models.trend_geo import TrendGeoRequest
 from assets.prompt_template_setup import *
 import os
 from utils.utils import translate_url
+from schemas.product_schema import ProductMetadata
+import re
 from utils.jwt_util import *
 
 router = APIRouter(prefix="/ai", tags=["Ai"])
@@ -167,6 +169,8 @@ def response_generation(
     image: ImagePayload,
     data: RetrievalOutput,
     user_query: str = Query(...),
+    k: int = Query(5, description="Number of results per object")
+    user_query: str = Query(...),
     user_id: str = Depends(get_user_id)
 ):
     """
@@ -237,6 +241,7 @@ def response_generation(
     })
     # Get Extra Info
     i = 1
+    products = []  # Collect product metadata for response
     for path in retrieval_result["retrieved_image_paths"]:
         # Query Supabase for the product with this image path
         path = translate_url(path)
@@ -244,6 +249,7 @@ def response_generation(
         if not response.data or len(response.data) == 0:
             raise ValueError(f"No product found for image path: {path}")
         product = response.data[0]
+        products.append(product)  # Add to products list
         extra_info = f"{i}. Extra Info on this image reference that matched to the user's outfit (only look at this if you find helpful):\n"
         for key, value in product.items():
             extra_info += f"{key}: {value}\n"
@@ -287,7 +293,7 @@ def response_generation(
     Initializer.database.table("user_sessions").insert(session_data).execute()
 
     """ Generate Output """
-    return {"response": groq_llama_completion(messages, token=1024)}
+    return {"response": groq_llama_completion(messages, token=1024), "products": products[:k]}
 
 @router.post("/fashion-advisor-visual")
 def full_fashion_advisor(
@@ -318,8 +324,30 @@ def full_fashion_advisor(
     advisor_response = response_generation(
         image=image_payload,
         data=retrieval_output,
-        user_query=payload.user_query
+        user_query=payload.user_query,
+        k=k
     )
+
+    # ======= EMBED SESSION TRACKING =======
+    session_data = {
+        "user_id": user_id,  # NULL if anonymous
+        "query_text": payload.user_query,
+        "image_path": payload.image_base64,  # optionally upload to Supabase Storage
+        "recommendations": retrieval_result["retrieved_image_paths"]
+    }
+    Initializer.database.table("user_sessions").insert(session_data).execute()
+
+    return advisor_response
+
+def get_user_id(authorization: str = Header(None)) -> str | None:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization.split("Bearer ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except JWTError:
+        return None
 
     # ======= EMBED SESSION TRACKING =======
     session_data = {
@@ -386,4 +414,62 @@ async def online_agent(payload: UserQuery):
         }
     result = await get_trendy_store_locations_api(TrendGeoRequest(**data))
     return {"response":result}
+
+@router.post("/fashion-advisor-text-only")
+def fashion_advisor_text_only(user_query: str = Query(...), k: int = Query(3, description="Number of top products to return")):
+    """
+    Purpose: Generate a fashion recommendation/analysis based only on user_query and all products in the database.
+    Input: user_query (string)
+    Output: JSON with a generated response string and top k products.
+    Example Response:
+        {"response": "Based on your query, I recommend...", "products": [ ... ]}
+    """
+    # Fetch all products (no pagination for now)
+    response = Initializer.database.table("products").select("*").execute()
+    products = response.data if response.data else []
+
+    # Optionally, convert to ProductMetadata for consistency
+    product_objs = [ProductMetadata(**item).dict() for item in products]
+
+    # Use AI to select the top k most relevant products
+    # Prepare a string with all product info for the model
+    all_product_info = "\n".join([
+        f"{i+1}. {p['name']} - {p.get('description', '')} (Brand: {p.get('brand', '')}, Category: {p.get('category', '')})"
+        for i, p in enumerate(product_objs)
+    ])
+    selection_prompt = [
+        {"type": "text", "text": f"USER's QUERY: {user_query}"},
+        {"type": "text", "text": "Here are all available products in our store:"},
+        {"type": "text", "text": all_product_info},
+        {"type": "text", "text": f"Please select the top {k} products (by their number) that are most relevant to the user's query. Return ONLY a comma-separated list of numbers, no explanation."}
+    ]
+    selection_messages = [
+        {"role": "system", "content": system_instruction_basic_qna},
+        {"role": "user", "content": selection_prompt}
+    ]
+    selection_response = groq_llama_completion(selection_messages, token=128)
+    indices = [int(x.strip())-1 for x in re.findall(r'\d+', selection_response)][:k]
+    selected_products = [product_objs[i] for i in indices if 0 <= i < len(product_objs)]
+
+    # Prepare product info for the prompt (only top k)
+    product_info = "\n".join([
+        f"{i+1}. {p['name']} - {p.get('description', '')} (Brand: {p.get('brand', '')}, Category: {p.get('category', '')})"
+        for i, p in enumerate(selected_products)
+    ])
+
+    # Construct the prompt
+    content = [
+        {"type": "text", "text": f"USER's QUERY: {user_query}"},
+        {"type": "text", "text": "Here are some available products in our store:"},
+        {"type": "text", "text": product_info}
+    ]
+    messages = [
+        {"role": "system", "content": system_instruction_basic_qna},
+        {"role": "user", "content": content}
+    ]
+
+    # Generate the response
+    response_text = groq_llama_completion(messages, token=1024)
+
+    return {"response": response_text, "products": selected_products}
 

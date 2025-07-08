@@ -76,4 +76,11 @@ export async function voiceToText(file: File): Promise<VoiceToTextResponse> {
     method: 'POST',
     body: formData,
   });
+}
+
+export async function fashionAdvisorTextOnly(userQuery: string) {
+  return fetcher(`/ai/fashion-advisor-text-only?user_query=${encodeURIComponent(userQuery)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
 } 
