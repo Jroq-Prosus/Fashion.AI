@@ -1,6 +1,6 @@
-from fastapi import APIRouter, UploadFile, File, status
+from fastapi import APIRouter, HTTPException, UploadFile, File, status
 from controllers.users import user_controller
-from schemas.user_schema import ImageUploadResponse, StandardResponseWithImageUpload
+from schemas.user_schema import ImageUploadResponse, RegisterRequest, RegisterResponse, StandardResponseWithImageUpload, UserResponse
 from fastapi.responses import JSONResponse
 from utils.response import standard_response
 
@@ -36,4 +36,16 @@ async def upload_image(user_id: str, file: UploadFile = File(...)):
         data=response_data,
         message="Image uploaded successfully",
         code=status.HTTP_201_CREATED
+    )
+
+@router.post("/register", response_model=RegisterResponse)
+def register_user(user: RegisterRequest):
+    result = user_controller.register_user(user)
+
+    user_response = UserResponse(**result)
+    
+    return RegisterResponse(
+        code=201,
+        message="User registered successfully",
+        data=user_response
     )
