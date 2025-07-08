@@ -1,13 +1,16 @@
 import io
 import base64
-from setup import Initializer
 from PIL import Image
+from groq import Groq
+import os
+from dotenv import load_dotenv
 
-Initializer = Initializer.get_instance()
+load_dotenv()
 
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 def groq_llama_completion(messages, token=1024):
-    completion = Initializer.client_groq.chat.completions.create(
+    completion = Groq(api_key=GROQ_API_KEY).chat.completions.create(
         model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=messages,
         temperature=1,

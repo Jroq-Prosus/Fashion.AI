@@ -7,8 +7,11 @@ from dotenv import load_dotenv
 from api.handlers import product_handler, ai_handler, user_handler, voice_handler as voi, ai_trend_geo_handler, auth_handler
 from utils.response import standard_response
 from fastapi.middleware.cors import CORSMiddleware
+import os
+
 
 load_dotenv('../.env')  # Load .env file ke environment variables
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 app = FastAPI(title="Product Metadata API", swagger_ui_parameters={"syntaxHighlight": {"theme": "obsidian"}})
 
