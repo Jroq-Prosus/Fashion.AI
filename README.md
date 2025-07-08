@@ -5,6 +5,9 @@ https://github.com/ShuhaoZQGG/Fashion.AI
 ### Slide Presentation
 See our [slide presentation here](./assets/Raise%20Your%20Hackathon%20Team%20Jroq-Prosus.pdf) 
 
+### Getting Started
+Refer to [Contribution.md](./Contributing.md)
+
 ### Introduction
 Fashion.AI, A fashion-focused AI-powered E-commerce platform using Bolt.new, structured into three clear modules: frontend, backend, and ai-model.
 
