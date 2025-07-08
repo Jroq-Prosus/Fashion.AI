@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { fetcher } from '../lib/fetcher';
+import { toast } from '@/components/ui/use-toast';
 
 const PAGE_SIZE = 6;
 const PLACEHOLDER_IMAGE = '/placeholder.png'; // You can provide a real placeholder image in public/
@@ -146,7 +147,13 @@ const TrendingFashionItems = () => {
                     <div className="flex items-center space-x-2">
                       {/* No price/originalPrice in backend, so skip or add logic if available */}
                     </div>
-                    <button className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 text-sm font-medium shadow-md hover:shadow-lg">
+                    <button
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 text-sm font-medium shadow-md hover:shadow-lg"
+                      onClick={() => toast({
+                        title: 'Added to cart',
+                        description: `${displayName} has been added to your cart!`,
+                      })}
+                    >
                       <ShoppingCart className="w-4 h-4" />
                       <span>Add to Cart</span>
                     </button>

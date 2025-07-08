@@ -10,9 +10,30 @@ Build a revolutionary e-commerce experience for fashion-forward users. Instead o
 
 `backend/`
 - FastAPI orchestration layer for model routing, metadata, and API coordination.
+- **Background Scheduler:** `user_profile_summary_job.py` runs every hour to summarize user sessions and update user profiles using AI.
 
-`ai-model/`
-- Python-based detection, embedding, retrieval, and reasoning agents.
+### 🗂️ Main Backend API Handlers
+
+- **User:** Upload profile images, fetch user profiles, and look up users by email.
+- **Auth:** Login and signup endpoints for user authentication.
+- **Product:** Retrieve product metadata and list all products (with pagination).
+- **AI:**
+  - Object detection (YOLO) and image retrieval (FAISS).
+  - Multimodal and text-only fashion advisor responses.
+  - Online search agent for trend validation.
+- **Voice:** Audio-to-text conversion for voice queries.
+- **Trend Geo:** Recommend trendy local stores based on user style and location.
+- **User Profile Scheduler:** Periodically summarizes user sessions and updates user profiles using AI (see `backend/services/user_profile_summary_job.py`).
+
+### 🖥️ Main Frontend Pages
+
+- **Home:** Landing page with trending items and AI chat.
+- **Product:** Product detail view.
+- **User Profile:** View user profile by ID or email.
+- **Login/Signup:** Unified authentication page.
+- **404:** Not found page for invalid routes.
+
+---
 
 ### 🧠 Core Features: 
 #### 🖼️ Image & Voice Interaction

@@ -7,7 +7,7 @@ import pytz
 import time
 
 # How often to run the job (in seconds)
-JOB_INTERVAL_SECONDS = 60  # 1 minute
+JOB_INTERVAL_SECONDS = 3600  # 1 hour
 
 def summarize_user_sessions(sessions):
     # Prepare a summary prompt for the AI
