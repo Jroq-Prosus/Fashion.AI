@@ -10,7 +10,7 @@ import {
   voiceToText,
   fashionAdvisorTextOnly,
 } from '../lib/fetcher';
-import { ChatMessage, RetrievalResult, VoiceToTextResponse } from '@/models/chat';
+import { ChatMessageWithImage, VoiceToTextResponse } from '@/models/chat';
 import { ProductPreview } from '@/models/product';
 import { useNavigate } from 'react-router-dom';
 import { type TrendGeoRes } from '@/models/chat';
@@ -22,7 +22,7 @@ interface ChatRoomProps {
 }
 
 const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<ChatMessageWithImage[]>([
     {
       id: '1',
       text: "Hi! I'm your AI fashion assistant. Upload an image, describe what you're looking for, or use voice to find the perfect style matches!",
@@ -36,6 +36,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const navigate = useNavigate();
   const [lastProductForNearby, setLastProductForNearby] = useState<any>(null);
   const [lastUserQuery, setLastUserQuery] = useState<string>('');
@@ -66,7 +67,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   }, [recordedAudio]);
 
   const addMessage = (text: string, isUser: boolean, isTyping = false, options?: any) => {
-    const newMessage: ChatMessage = {
+    const newMessage: ChatMessageWithImage = {
       id: crypto.randomUUID(),
       text,
       isUser,
@@ -140,14 +141,12 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
   // Refactored handleSend to use processUserInput
   const handleSend = async () => {
     if (!inputValue.trim() && !selectedImage) return;
-    if (inputValue.trim()) {
-      addMessage(inputValue, true);
-    }
-    if (selectedImage) {
-      addMessage('📷 Uploaded fashion image', true);
+    if (inputValue.trim() || selectedImage) {
+      addMessage(inputValue, true, false, selectedImage ? { image: selectedImage } : undefined);
     }
     const text = inputValue;
     setInputValue('');
+    setPreviewImage(null);
     await processUserInput({ text, image: selectedImage || undefined, source: 'text' });
     setSelectedImage(null);
   };
@@ -172,12 +171,9 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
     setIsTranscribing(false);
   };
 
-  const handleDiscardAudio = () => {
-    setRecordedAudio(null);
-  };
-
   const removeSelectedImage = () => {
     setSelectedImage(null);
+    setPreviewImage(null);
   };
 
   const handleAddToCart = (product: ProductPreview) => {
@@ -267,6 +263,13 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
                   </div>
                 ) : (
                   <>
+                    {message.image && (
+                      <img
+                        src={message.image}
+                        alt="Uploaded preview"
+                        className="w-32 h-32 object-cover rounded-lg mb-2 border"
+                      />
+                    )}
                     <p className="whitespace-pre-line">{message.text}</p>
                     {message.productPreviews && message.productPreviews.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-4">
@@ -383,6 +386,7 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
                   reader.onload = (e) => {
                     const imageUrl = e.target?.result as string;
                     setSelectedImage(imageUrl);
+                    setPreviewImage(imageUrl);
                   };
                   reader.readAsDataURL(file);
                 }
@@ -466,10 +470,10 @@ const ChatRoom = ({ isOpen, onClose, onSearch }: ChatRoomProps) => {
                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
-                  {selectedImage && (
+                  {previewImage && (
                     <div className="absolute left-0 top-full mt-2 flex items-center space-x-2 bg-gray-100 p-2 rounded-xl shadow-md">
-                      <img src={selectedImage} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
-                      <button onClick={removeSelectedImage} className="text-red-500 hover:underline text-xs">Remove</button>
+                      <img src={previewImage} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
+                      <button onClick={() => { removeSelectedImage(); }} className="text-red-500 hover:underline text-xs">Remove</button>
                     </div>
                   )}
                 </>
