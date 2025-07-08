@@ -1,24 +1,34 @@
-from utils.jwt_util import create_access_token
+from db.supabase_client import supabase
 from fastapi import HTTPException
-from starlette.status import HTTP_401_UNAUTHORIZED
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST
 
-# Mock user for demo
-mock_users = {
-    "admin": "admin123",
-    "user": "user123"
-}
+def login_service(email: str, password: str) -> str:
+    try:
+        response = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        # If login fails, response.user will be None
+        if response.user is None or response.session is None:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Invalid username or password"
+            )
+        return response.session.access_token
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail=f"Login failed: {str(e)}"
+        )
 
-def authenticate_user(email: str, password: str) -> str:
-    if email in mock_users and mock_users[email] == password:
-        # Return user id or username as subject
-        return email
-    raise HTTPException(
-        status_code=HTTP_401_UNAUTHORIZED,
-        detail="Invalid username or password"
-    )
-
-def login_service(username: str, password: str) -> str:
-    user_id = authenticate_user(username, password)
-    token_data = {"sub": user_id}
-    token = create_access_token(token_data)
-    return token
+def signup_service(email: str, password: str) -> dict:
+    try:
+        response = supabase.auth.sign_up({"email": email, "password": password})
+        if response.user is None:
+            raise HTTPException(
+                status_code=HTTP_400_BAD_REQUEST,
+                detail="User creation failed."
+            )
+        return {"email": email, "message": "User created successfully."}
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail=f"Signup failed: {str(e)}"
+        )
