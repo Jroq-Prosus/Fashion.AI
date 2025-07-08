@@ -7,13 +7,17 @@ export interface RetrievalResult {
   products: Product[];
 }
 
+export interface ChatMessageWithImage extends ChatMessage {
+  image?: string;
+}
+
 export interface ChatMessage {
   id: string;
   text: string;
   isUser: boolean;
   timestamp: Date;
   isTyping?: boolean;
-  productPreview?: ProductPreview;
+  productPreviews?: ProductPreview[];
   isThinking?: boolean;
   type?: 'store-maps';
   stores?: Array<{
