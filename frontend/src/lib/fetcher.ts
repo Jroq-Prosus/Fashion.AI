@@ -83,4 +83,20 @@ export async function fashionAdvisorTextOnly(userQuery: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+export async function login(email: string, password: string) {
+  return fetcher('/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function signup(email: string, password: string) {
+  return fetcher('/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
 } 
