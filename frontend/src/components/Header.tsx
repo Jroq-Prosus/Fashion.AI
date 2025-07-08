@@ -19,14 +19,6 @@ const Header = () => {
             <a href="#" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Explore</a>
             <a href="#" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">My Style</a>
             <a href="#" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Help</a>
-            {user ? (
-              <span className="text-gray-700 font-medium flex items-center gap-2">
-                {user}
-                <button onClick={logout} className="ml-2 text-xs text-purple-600 hover:underline">Logout</button>
-              </span>
-            ) : (
-              <Link to="/login" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Login</Link>
-            )}
           </nav>
         </div>
         
