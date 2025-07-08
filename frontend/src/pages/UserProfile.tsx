@@ -88,10 +88,10 @@ const UserProfile: React.FC = () => {
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
               {/* If you have a profile image, use <AvatarImage src={profile.imageUrl} /> */}
-              <AvatarFallback>{profile.user_id?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+              <AvatarFallback>{user_id?.[0]?.toUpperCase() || '?'}</AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle className="mb-1">{profile.user_id}</CardTitle>
+              <CardTitle className="mb-1">{user_id}</CardTitle>
               {/* You can add a badge or status here if needed */}
             </div>
           </div>
